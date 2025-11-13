@@ -1,43 +1,43 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // import { useApp } from '@/lib/store';
 // import { toast } from '@/hooks/use-toast';
-import { User, Wallet, Calendar, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { User, Wallet, Calendar, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 // import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 export default function ProfilePage() {
   // useAuthGuard();
   const router = useRouter();
   const user = {
-    full_name: 'John Doe',
-    email: 'john.doe@example.com',
-    preferred_currency: 'USD',
-    timezone: 'America/Los_Angeles',
+    full_name: "John Doe",
+    email: "john.doe@example.com",
+    preferred_currency: "USD",
+    timezone: "America/Los_Angeles",
   };
 
   const budget = {
-    cycle: 'monthly',
-    cycleAnchor: '2025-10-01',
+    cycle: "monthly",
+    cycleAnchor: "2025-10-01",
     startingBalance: 0,
   };
   // const { user, budget, updateUser, updateBudget } = useApp();
@@ -58,7 +58,7 @@ export default function ProfilePage() {
   const handleSaveBudget = () => {};
 
   const handleLogout = () => {
-    router.push('/auth');
+    router.push("/auth");
   };
 
   return (
@@ -80,9 +80,9 @@ export default function ProfilePage() {
               <AvatarImage src="/placeholder.svg?height=64&width=64" />
               <AvatarFallback className="bg-primary text-primary-foreground text-xl">
                 {fullName
-                  .split(' ')
+                  .split(" ")
                   .map((n) => n[0])
-                  .join('')}
+                  .join("")}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -175,7 +175,7 @@ export default function ProfilePage() {
               <Select
                 value={cycle}
                 onValueChange={(v) =>
-                  setCycle(v as 'weekly' | 'biweekly' | 'monthly')
+                  setCycle(v as "weekly" | "biweekly" | "monthly")
                 }
               >
                 <SelectTrigger id="cycle">
@@ -234,7 +234,7 @@ export default function ProfilePage() {
           <div className="flex-1">
             <p className="font-medium text-green-500">Current Budget Cycle</p>
             <p className="text-sm text-muted-foreground">
-              Your {cycle} budget cycle started on{' '}
+              Your {cycle} budget cycle started on{" "}
               {new Date(cycleAnchor).toLocaleDateString()} with a starting
               balance of ${Number.parseFloat(startingBalance).toFixed(2)}
             </p>
