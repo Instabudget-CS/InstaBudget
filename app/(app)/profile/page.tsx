@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -19,47 +19,101 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { useApp } from '@/lib/store';
-// import { toast } from '@/hooks/use-toast';
-import { User, Wallet, Calendar, LogOut } from "lucide-react";
+import { User, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-// import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { useAuth } from "@/lib/auth-provider";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
-  // useAuthGuard();
   const router = useRouter();
-  const user = {
-    full_name: "John Doe",
-    email: "john.doe@example.com",
-    preferred_currency: "USD",
-    timezone: "America/Los_Angeles",
-  };
-
-  const budget = {
-    cycle: "monthly",
-    cycleAnchor: "2025-10-01",
-    startingBalance: 0,
-  };
-  // const { user, budget, updateUser, updateBudget } = useApp();
-
-  const [fullName, setFullName] = useState(user.full_name);
-  const [email, setEmail] = useState(user.email);
-  const [currency, setCurrency] = useState(user.preferred_currency);
-  const [timezone, setTimezone] = useState(user.timezone);
-
-  const [cycle, setCycle] = useState(budget.cycle);
-  const [cycleAnchor, setCycleAnchor] = useState(budget.cycleAnchor);
-  const [startingBalance, setStartingBalance] = useState(
-    budget.startingBalance.toString()
+  const {
+    user,
+    profile,
+    updateProfile,
+    loading: authLoading,
+    signOut,
+  } = useAuth();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [occupation, setOccupation] = useState("");
+  const [cycle, setCycle] = useState<"weekly" | "biweekly" | "monthly">(
+    "monthly"
   );
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveProfile = () => {};
+  // Initialize form with profile data
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setEmail(user?.email || "");
+      setCurrency(profile.preferred_currency || "USD");
+      setOccupation(profile.occupation || "");
+      setCycle(
+        (profile.cycle_duration as "weekly" | "biweekly" | "monthly") ||
+          "monthly"
+      );
+    } else if (user) {
+      setEmail(user.email || "");
+    }
+  }, [profile, user]);
 
-  const handleSaveBudget = () => {};
+  const handleSaveProfile = async () => {
+    if (!profile) return;
 
-  const handleLogout = () => {
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        full_name: fullName,
+        preferred_currency: currency,
+        occupation: occupation || undefined,
+        cycle_duration: cycle,
+      });
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
     router.push("/auth");
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-medium">No profile found</p>
+          <p className="text-sm text-muted-foreground">
+            Please complete your profile setup
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 mb-20">
@@ -87,10 +141,10 @@ export default function ProfilePage() {
             </Avatar>
             <div>
               <CardTitle className="text-green-500">
-                Account Information
+                Profile & Settings
               </CardTitle>
               <CardDescription className="">
-                Update your personal details
+                Update your personal details and preferences
               </CardDescription>
             </div>
           </div>
@@ -113,7 +167,12 @@ export default function ProfilePage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed
+              </p>
             </div>
           </div>
 
@@ -127,117 +186,61 @@ export default function ProfilePage() {
                 <SelectContent>
                   <SelectItem value="USD">USD - US Dollar</SelectItem>
                   <SelectItem value="EUR">EUR - Euro</SelectItem>
+                  <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                  <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                  <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger id="timezone">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                  <SelectItem value="America/Chicago">Central Time</SelectItem>
-                  <SelectItem value="America/Los_Angeles">
-                    Pacific Time
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="occupation">Occupation</Label>
+              <Input
+                id="occupation"
+                value={occupation}
+                onChange={(e) => setOccupation(e.target.value)}
+                placeholder="e.g., Software Engineer, Teacher, etc."
+              />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cycle">Budget Cycle</Label>
+            <Select
+              value={cycle}
+              onValueChange={(v) =>
+                setCycle(v as "weekly" | "biweekly" | "monthly")
+              }
+            >
+              <SelectTrigger id="cycle">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-end pt-2">
             <Button
               onClick={handleSaveProfile}
               className="hover:bg-green-500 bg-green-400 text-white"
+              disabled={isSaving}
             >
-              <User className="mr-2 h-4 w-4" />
-              Save Profile
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <User className="mr-2 h-4 w-4" />
+                  Update Profile
+                </>
+              )}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Budget Settings */}
-      <Card className="relative rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-green-500">Budget Configuration</CardTitle>
-          <CardDescription>
-            Set up your budget cycle and starting balance
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="cycle">Budget Cycle</Label>
-              <Select
-                value={cycle}
-                onValueChange={(v) =>
-                  setCycle(v as "weekly" | "biweekly" | "monthly")
-                }
-              >
-                <SelectTrigger id="cycle">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cycleAnchor">Cycle Start Date</Label>
-              <Input
-                id="cycleAnchor"
-                type="date"
-                value={cycleAnchor}
-                onChange={(e) => setCycleAnchor(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="startingBalance">Starting Balance</Label>
-            <Input
-              id="startingBalance"
-              type="number"
-              step="0.01"
-              value={startingBalance}
-              onChange={(e) => setStartingBalance(e.target.value)}
-              placeholder="0.00"
-            />
-            <p className="text-xs text-muted-foreground">
-              This is your account balance at the start of the budget cycle
-            </p>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={handleSaveBudget}
-              className="hover:bg-green-500 bg-green-400 text-white"
-            >
-              <Wallet className="mr-2 h-4 w-4 " />
-              Save Budget Settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Budget Info Card */}
-      <Card className="relative rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="flex items-start gap-3 py-4">
-          <Calendar className="mt-0.5 h-5 w-5 text-primary" />
-          <div className="flex-1">
-            <p className="font-medium text-green-500">Current Budget Cycle</p>
-            <p className="text-sm text-muted-foreground">
-              Your {cycle} budget cycle started on{" "}
-              {new Date(cycleAnchor).toLocaleDateString()} with a starting
-              balance of ${Number.parseFloat(startingBalance).toFixed(2)}
-            </p>
           </div>
         </CardContent>
       </Card>

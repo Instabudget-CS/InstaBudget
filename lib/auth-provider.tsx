@@ -12,6 +12,7 @@ interface UserProfile {
   occupation?: string;
   age?: number;
   timezone: string;
+  cycle_duration?: "weekly" | "biweekly" | "monthly";
   created_at: string;
   updated_at: string;
 }

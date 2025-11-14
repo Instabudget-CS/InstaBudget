@@ -1,50 +1,39 @@
-'use client';
+"use client";
 
-import type React from 'react';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Camera, Upload, Sparkles, X, Edit3 } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Camera, Edit3 } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useApp, type Category, type TransactionKind } from '@/lib/store';
-import { toast } from '@/hooks/use-toast';
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReceiptUpload } from "./components/receipt-upload";
+import { ReceiptPreview } from "./components/receipt-preview";
+import { ExtractionStatus } from "./components/extraction-status";
+import { TransactionForm } from "./components/transaction-form";
+import { mockExtractedData } from "./constants";
+import { useAuth } from "@/lib/auth-provider";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/hooks/use-toast";
+import { useUserData } from "@/lib/user-data-provider";
+import type { TransactionFormData } from "./types";
 
 export default function ScanPage() {
   const router = useRouter();
-  const { addReceipt, addTransaction, linkReceiptToTransaction } = useApp();
-
-  const [activeTab, setActiveTab] = useState<'scan' | 'manual'>('scan');
+  const { user, profile } = useAuth();
+  const { addTransaction } = useUserData();
+  const [activeTab, setActiveTab] = useState<"scan" | "manual">("scan");
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Form state
-  const [kind, setKind] = useState<TransactionKind>('expense');
-  const [merchant, setMerchant] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<Category>('other');
-  const [txnDate, setTxnDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
-  const [notes, setNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [extractedData, setExtractedData] = useState<
+    typeof mockExtractedData | null
+  >(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,195 +49,122 @@ export default function ScanPage() {
 
   const mockAIExtraction = () => {
     setIsExtracting(true);
-
-    // Mock AI extraction
     setTimeout(() => {
-      const mockData = {
-        merchant: 'Whole Foods Market',
-        amount: '47.82',
-        category: 'groceries' as Category,
-        txnDate: new Date().toISOString().split('T')[0],
-      };
-
-      setMerchant(mockData.merchant);
-      setAmount(mockData.amount);
-      setCategory(mockData.category);
-      setTxnDate(mockData.txnDate);
+      setExtractedData(mockExtractedData);
       setIsExtracting(false);
       setIsEditing(true);
-
-      toast({
-        title: 'Success',
-        description: 'Receipt data extracted successfully',
-      });
     }, 2000);
   };
 
-  const handleSave = () => {
-    if (!merchant || !amount) {
+  const handleSaveManualTransaction = async (formData: TransactionFormData) => {
+    if (!user || !profile) {
       toast({
-        title: 'Error',
-        description: 'Please fill in merchant and amount',
-        variant: 'destructive',
+        title: "Error",
+        description: "You must be logged in to save transactions",
+        variant: "destructive",
       });
       return;
     }
 
-    // Add receipt only if there's an image
-    let receiptId: string | undefined;
-    if (receiptImage) {
-      receiptId = Math.random().toString(36).substring(7);
-      addReceipt({
-        url: receiptImage,
+    // Validate required fields
+    if (!formData.merchant.trim()) {
+      toast({
+        title: "Error",
+        description: "Merchant name is required",
+        variant: "destructive",
       });
+      return;
     }
 
-    // Add transaction
-    const transactionId = Math.random().toString(36).substring(7);
-    addTransaction({
-      kind,
-      merchant,
-      amount: Number.parseFloat(amount),
-      currency: 'USD',
-      category,
-      txn_date: txnDate,
-      notes,
-      receiptId,
-    });
-
-    if (receiptId) {
-      linkReceiptToTransaction(receiptId, transactionId);
+    if (formData.items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one item",
+        variant: "destructive",
+      });
+      return;
     }
 
-    toast({
-      title: 'Success',
-      description: receiptImage
-        ? 'Receipt saved successfully'
-        : 'Transaction saved successfully',
-    });
+    setIsSaving(true);
+    console.log("clicked save manual transaction");
+    try {
+      const transactionData: {
+        user_id: string;
+        transaction_items: string;
+        merchant: string | null;
+        total_amount: number;
+        currency: string;
+        category: string | null;
+        transaction_date: string;
+        notes?: string | null;
+      } = {
+        user_id: user.id,
+        transaction_items: JSON.stringify(formData.items),
+        merchant: formData.merchant.trim() || null,
+        total_amount: Number.parseFloat(formData.amount),
+        currency: profile.preferred_currency,
+        category: formData.category.toLowerCase() || null,
+        transaction_date: formData.txnDate,
+      };
 
-    // Reset form
+      // Only include notes if not empty
+      if (formData.notes.trim()) {
+        transactionData.notes = formData.notes.trim();
+      }
+      console.log(transactionData);
+
+      const { data, error } = await supabase
+        .from("transactions")
+        .insert([transactionData])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Add transaction to provider state
+      if (data) {
+        addTransaction(data);
+      }
+
+      toast({
+        title: "Success",
+        description: "Transaction saved successfully",
+      });
+
+      // Reset form and redirect
+      router.push("/transactions");
+    } catch (error) {
+      console.error("Error saving transaction:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveScanTransaction = async (formData: TransactionFormData) => {
+    // For scan transactions, we'll implement this later
+    // For now, just reset the form
+    // TODO: Implement scan transaction save with receipt_id
+    console.log("Scan transaction data:", formData);
     setReceiptImage(null);
     setIsEditing(false);
-    setMerchant('');
-    setAmount('');
-    setCategory('other');
-    setNotes('');
-
-    router.push(receiptImage ? '/receipts' : '/transactions');
+    setExtractedData(null);
   };
 
   const handleCancel = () => {
     setReceiptImage(null);
     setIsEditing(false);
-    setMerchant('');
-    setAmount('');
-    setCategory('other');
-    setNotes('');
+    setExtractedData(null);
   };
-
-  const TransactionForm = () => (
-    <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="kind">Type</Label>
-          <Select
-            value={kind}
-            onValueChange={(v) => setKind(v as TransactionKind)}
-          >
-            <SelectTrigger id="kind">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="expense">Expense</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
-          <Select
-            value={category}
-            onValueChange={(v) => setCategory(v as Category)}
-          >
-            <SelectTrigger id="category">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="groceries">Groceries</SelectItem>
-              <SelectItem value="dining">Dining</SelectItem>
-              <SelectItem value="transport">Transport</SelectItem>
-              <SelectItem value="shopping">Shopping</SelectItem>
-              <SelectItem value="entertainment">Entertainment</SelectItem>
-              <SelectItem value="utilities">Utilities</SelectItem>
-              <SelectItem value="health">Health</SelectItem>
-              <SelectItem value="education">Education</SelectItem>
-              <SelectItem value="rent">Rent</SelectItem>
-              <SelectItem value="subscriptions">Subscriptions</SelectItem>
-              <SelectItem value="travel">Travel</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="merchant">Merchant</Label>
-        <Input
-          id="merchant"
-          value={merchant}
-          onChange={(e) => setMerchant(e.target.value)}
-          placeholder="Store or merchant name"
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="amount">Amount</Label>
-          <Input
-            id="amount"
-            type="number"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
-          <Input
-            id="date"
-            type="date"
-            value={txnDate}
-            onChange={(e) => setTxnDate(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes (optional)</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add any additional notes..."
-          rows={3}
-        />
-      </div>
-
-      <div className="flex gap-3 pt-4">
-        <Button onClick={handleSave} className="flex-1">
-          Save Transaction
-        </Button>
-        <Button variant="outline" onClick={handleCancel}>
-          Cancel
-        </Button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -261,7 +177,7 @@ export default function ScanPage() {
 
       <Tabs
         value={activeTab}
-        onValueChange={(v) => setActiveTab(v as 'scan' | 'manual')}
+        onValueChange={(v) => setActiveTab(v as "scan" | "manual")}
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-2">
@@ -277,81 +193,14 @@ export default function ScanPage() {
 
         <TabsContent value="scan" className="mt-6">
           {!receiptImage ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Receipt</CardTitle>
-                <CardDescription>
-                  Take a photo or upload an image of your receipt
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-12 text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Camera className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold">
-                    Upload a receipt
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    PNG, JPG or HEIC up to 10MB
-                  </p>
-                  <div className="mt-6 flex gap-3">
-                    <Button asChild>
-                      <label className="cursor-pointer">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Choose file
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="sr-only"
-                        />
-                      </label>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ReceiptUpload onImageUpload={handleImageUpload} />
           ) : (
             <div className="space-y-6">
-              {/* Receipt Preview */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Receipt Image</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={handleCancel}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg border bg-muted">
-                    <img
-                      src={receiptImage || '/placeholder.svg'}
-                      alt="Receipt"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <ReceiptPreview imageUrl={receiptImage} onRemove={handleCancel} />
 
-              {/* Extraction Status */}
-              {isExtracting && (
-                <Card className="border-primary bg-primary/5">
-                  <CardContent className="flex items-center gap-3 py-4">
-                    <Sparkles className="h-5 w-5 animate-pulse text-primary" />
-                    <div>
-                      <p className="font-medium">Extracting data...</p>
-                      <p className="text-sm text-muted-foreground">
-                        AI is reading your receipt
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {isExtracting && <ExtractionStatus />}
 
-              {/* Edit Form */}
-              {isEditing && (
+              {isEditing && extractedData && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction Details</CardTitle>
@@ -360,7 +209,19 @@ export default function ScanPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <TransactionForm />
+                    <TransactionForm
+                      onSave={handleSaveScanTransaction}
+                      onCancel={handleCancel}
+                      isReadOnly={false}
+                      initialData={{
+                        merchant: extractedData.merchant,
+                        amount: extractedData.amount,
+                        category: extractedData.category,
+                        txnDate: extractedData.txnDate,
+                        notes: extractedData.notes,
+                        items: extractedData.items,
+                      }}
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -377,7 +238,12 @@ export default function ScanPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TransactionForm />
+              <TransactionForm
+                onSave={handleSaveManualTransaction}
+                onCancel={handleCancel}
+                isReadOnly={false}
+                isLoading={isSaving}
+              />
             </CardContent>
           </Card>
         </TabsContent>
