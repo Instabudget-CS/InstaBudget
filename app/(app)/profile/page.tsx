@@ -249,7 +249,7 @@ export default function ProfilePage() {
       <Button
         variant="destructive"
         onClick={handleLogout}
-        className="w-full justify-center bg-green-400 hover:bg-green-500"
+        className="w-full justify-center bg-red-400 hover:bg-red-500"
       >
         {/* <LogOut className="mr-2 h-4 w-4" /> */}
         Sign Out
