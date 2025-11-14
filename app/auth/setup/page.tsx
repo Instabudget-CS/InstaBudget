@@ -1,46 +1,139 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2, User } from 'lucide-react';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2, User } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 const CURRENCIES = [
-  { value: 'USD', label: 'US Dollar (USD)' },
-  { value: 'EUR', label: 'Euro (EUR)' },
-  { value: 'GBP', label: 'British Pound (GBP)' },
-  { value: 'JPY', label: 'Japanese Yen (JPY)' },
-  { value: 'CNY', label: 'Chinese Yuan (CNY)' },
+  { value: "USD", label: "US Dollar (USD)" },
+  { value: "EUR", label: "Euro (EUR)" },
+  { value: "GBP", label: "British Pound (GBP)" },
+  { value: "JPY", label: "Japanese Yen (JPY)" },
+  { value: "CNY", label: "Chinese Yuan (CNY)" },
 ];
 
 export default function SetupPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const [formData, setFormData] = useState({
-    full_name: '',
-    preferred_currency: 'USD',
-    occupation: '',
-    age: '',
+  // Guard: require auth but not profile (since they're setting it up)
+  const {
+    user,
+    profile,
+    setProfile,
+    loading: authLoading,
+  } = useAuthGuard({
+    requireAuth: true,
+    requireProfile: false,
   });
+
+  // Redirect users who already have a profile
+  useEffect(() => {
+    if (!authLoading && user && profile) {
+      router.push("/profile");
+    }
+  }, [user, profile, authLoading, router]);
+
+  const [formData, setFormData] = useState({
+    full_name: "",
+    preferred_currency: "USD",
+    occupation: "",
+    age: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.full_name.trim()) {
+      setError("Name is required");
+      return;
+    }
+
+    if (
+      formData.age &&
+      (isNaN(Number(formData.age)) ||
+        Number(formData.age) < 13 ||
+        Number(formData.age) > 120)
+    ) {
+      setError("Please enter a valid age between 13 and 120");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        router.push("/auth");
+        return;
+      }
+
+      // Call Edge Function to upsert profile
+      const { data, error } = await supabase.functions.invoke(
+        "upsert-profile",
+        {
+          body: {
+            full_name: formData.full_name,
+            preferred_currency: formData.preferred_currency,
+            occupation: formData.occupation || null,
+            age: formData.age ? parseInt(formData.age) : null,
+          },
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message || "Failed to save profile");
+      }
+      setProfile({ ...data.profile });
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Setup error:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-background p-4">
@@ -60,7 +153,7 @@ export default function SetupPage() {
             </Alert>
           )}
 
-          <form onSubmit={() => {}} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="full_name">
                 Name <span className="text-destructive">*</span>
@@ -142,7 +235,7 @@ export default function SetupPage() {
                   Setting up...
                 </>
               ) : (
-                'Complete setup'
+                "Complete setup"
               )}
             </Button>
           </form>
