@@ -38,6 +38,26 @@ async function handleReceipt(req) {
   try {
     const form = await req.formData();
     const file = form.get("receipt_file");
+    const user_id = form.get("user_id");
+    let finalUserId;
+    if (typeof user_id === "string" && user_id.trim() !== "") {
+      // 2. Trim the string and then parse the integer
+      finalUserId = user_id.trim();
+    } else {
+      // Handle the case where user_id is null or not a string
+      return new Response(
+        JSON.stringify({
+          error: "Missing required field",
+          details: "The 'user_id' form field is required.",
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
     if (!file || !(file instanceof File)) {
       return new Response(
         JSON.stringify({
@@ -62,21 +82,29 @@ async function handleReceipt(req) {
 Please analyze the uploaded receipt image. 
 Return the result **STRICTLY** as a single JSON object. 
 **DO NOT** include any markdown formatting (like \`\`\`json\`), notes, or conversational text outside of the JSON object.
-Ensure 'transaction_items' is an array of objects. 
+
 JSON schema:
 ${JSON.stringify(
   {
-    merchant: "string (name of the store or person)",
-    transaction_date: "string (YYYY-MM-DD)",
-    total_amount: "number (the final amount paid)",
-    currency: "string (e.g., USD, EUR)",
-    category: "string (e.g., groceries, dining, transport)",
+    // 1. transaction_items (moved to the top)
     transaction_items: [
       {
         item: "string (name of the product)",
         price: "number (unit or total price)",
       },
     ],
+    // 2. merchant
+    merchant: "string (name of the store or person)",
+    // 3. total_amount
+    total_amount: "number (the final amount paid)",
+    // 4. currency
+    currency: "string (e.g., USD, EUR)",
+    // 5. category - EDITED TO INCLUDE THE FULL LIST
+    category:
+      "string (MUST be one of: groceries, dining, transport, shopping, entertainment, utilities, health, education, rent, subscriptions, travel, income, other)",
+    // 6. transaction_date
+    transaction_date: "string (YYYY-MM-DD)",
+    // 7. notes
     notes: "string (any helpful observations)",
   },
   null,
@@ -124,15 +152,22 @@ ${JSON.stringify(
         }
       );
     }
+    const finalTransactionRecord = {
+      user_id: finalUserId,
+      ...receiptData,
+    };
     // Save to database
     const { error: dbError } = await supabase
       .from("transactions")
-      .insert(receiptData);
+      .insert(finalTransactionRecord);
     if (dbError) {
       return new Response(
         JSON.stringify({
           error: "Database error",
-          details: dbError.message,
+          // CRITICAL FIX: Use JSON.stringify() to inspect the object's contents
+          details: `${dbError.message}, Input data: ${JSON.stringify(
+            finalTransactionRecord
+          )}`,
         }),
         {
           status: 500,
