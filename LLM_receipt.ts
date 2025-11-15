@@ -86,32 +86,25 @@ Return the result **STRICTLY** as a single JSON object.
 JSON schema:
 ${JSON.stringify(
   {
-    // 1. transaction_items (moved to the top)
     transaction_items: [
       {
         item: "string (name of the product)",
         price: "number (unit or total price)",
       },
     ],
-    // 2. merchant
     merchant: "string (name of the store or person)",
-    // 3. total_amount
     total_amount: "number (the final amount paid)",
     // 4. currency
     currency: "string (e.g., USD, EUR)",
-    // 5. category - EDITED TO INCLUDE THE FULL LIST
     category:
       "string (MUST be one of: groceries, dining, transport, shopping, entertainment, utilities, health, education, rent, subscriptions, travel, income, other)",
-    // 6. transaction_date
     transaction_date: "string (YYYY-MM-DD)",
-    // 7. notes
     notes: "string (any helpful observations)",
   },
   null,
   2
 )}
 `;
-    // Correct way to call generateContent
     const result = await model.generateContent([
       {
         inlineData: {
@@ -128,10 +121,8 @@ ${JSON.stringify(
     if (!geminiOutput || geminiOutput === "") {
       throw new Error("Gemini returned an empty response.");
     }
-    // Parse and clean the response
     let receiptData;
     try {
-      // Remove markdown code blocks if present
       const cleanedOutput = geminiOutput
         .replace(/```json\n?/g, "")
         .replace(/```\n?/g, "")
@@ -156,31 +147,10 @@ ${JSON.stringify(
       user_id: finalUserId,
       ...receiptData,
     };
-    // Save to database
-    const { error: dbError } = await supabase
-      .from("transactions")
-      .insert(finalTransactionRecord);
-    if (dbError) {
-      return new Response(
-        JSON.stringify({
-          error: "Database error",
-          // CRITICAL FIX: Use JSON.stringify() to inspect the object's contents
-          details: `${dbError.message}, Input data: ${JSON.stringify(
-            finalTransactionRecord
-          )}`,
-        }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
     return new Response(
       JSON.stringify({
         success: true,
-        data: receiptData,
+        data: finalTransactionRecord,
       }),
       {
         status: 200,
