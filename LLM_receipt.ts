@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
   const mode = url.searchParams.get("mode");
   if (mode === "receipt") return await handleReceipt(req);
   if (mode === "manual") return await handleManual(req);
+  if (mode == "confirmation") return await handleConfirmation(req);
   return new Response(
     JSON.stringify({
       error: "Missing or invalid mode",
@@ -206,6 +207,51 @@ async function handleManual(req) {
     return new Response(
       JSON.stringify({
         error: "Invalid request",
+        details: err.message,
+      }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
+}
+async function handleConfirmation(req) {
+  try {
+    const confirmationReceipt = await req.json();
+    const { error } = await supabase
+      .from("transactions")
+      .insert(confirmationReceipt);
+    if (error) {
+      return new Response(
+        JSON.stringify({
+          error: error.message,
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        success: true,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: "Invalid input",
         details: err.message,
       }),
       {
