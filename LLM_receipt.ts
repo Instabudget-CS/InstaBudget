@@ -39,26 +39,6 @@ async function handleReceipt(req) {
   try {
     const form = await req.formData();
     const file = form.get("receipt_file");
-    const user_id = form.get("user_id");
-    let finalUserId;
-    if (typeof user_id === "string" && user_id.trim() !== "") {
-      // 2. Trim the string and then parse the integer
-      finalUserId = user_id.trim();
-    } else {
-      // Handle the case where user_id is null or not a string
-      return new Response(
-        JSON.stringify({
-          error: "Missing required field",
-          details: "The 'user_id' form field is required.",
-        }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
     if (!file || !(file instanceof File)) {
       return new Response(
         JSON.stringify({
@@ -144,14 +124,11 @@ ${JSON.stringify(
         }
       );
     }
-    const finalTransactionRecord = {
-      user_id: finalUserId,
-      ...receiptData,
-    };
+
     return new Response(
       JSON.stringify({
         success: true,
-        data: finalTransactionRecord,
+        data: receiptData,
       }),
       {
         status: 200,
