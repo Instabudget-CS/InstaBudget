@@ -13,14 +13,12 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   BudgetCycleCard,
-  type BudgetCycle,
   type ProfileBudgetConfig,
 } from '@/components/ui/budget_cycle_card';
 import {
   CategoryLimitsCard,
   type BudgetCategoryRow,
 } from '@/components/ui/category_limits_card';
-import { BudgetProgressCard } from '@/components/ui/budget_progress_card';
 
 export default function BudgetPage() {
   // TODO: Implement authGuard() to protect this route
@@ -81,19 +79,7 @@ export default function BudgetPage() {
     },
   ]);
 
-  // From budget categories we calculate their progress
-
-  // Calcluate progress for each category
-  const categoryProgress = categories.map((cat) => ({
-    id: cat.id,
-    name: cat.category_name,
-    spent: Number.parseFloat(cat.spent_amount || '0'),
-    limit: Number.parseFloat(cat.limit_amount || '0'),
-  }));
-
   // Calculate the combined progress for all categories
-  const totalLimit = categoryProgress.reduce((sum, c) => sum + c.limit, 0);
-  const totalSpent = categoryProgress.reduce((sum, c) => sum + c.spent, 0);
   const totalCategoryLimit = categories.reduce((sum, c) => {
     const value = Number.parseFloat(c.limit_amount || '0');
     return sum + (Number.isNaN(value) ? 0 : value);
@@ -200,22 +186,6 @@ export default function BudgetPage() {
       <CategoryLimitsCard
         categories={categories}
         onChange={setCategories}
-        currency={currency}
-      />
-
-      {/* Card to help users visualize their current spending progress */}
-      {/* TODO: Probably place this elsewhere like dashboard where it makes more sense, but it is here now to test*/}
-      {/* TODO: Also links to before, replace props with real data from backend */}
-
-      <BudgetProgressCard
-        cycleLabel="Current Cycle"
-        cycleRange={{
-          start: cycle_startDate,
-          end: cycle_endDate || undefined,
-        }}
-        totalLimit={totalLimit}
-        totalSpent={totalSpent}
-        categories={categoryProgress}
         currency={currency}
       />
 
