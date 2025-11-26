@@ -9,12 +9,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 interface ReceiptUploadProps {
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isAutoSave: boolean;
+  onAutoSaveChange: (value: boolean) => void;
 }
 
-export function ReceiptUpload({ onImageUpload }: ReceiptUploadProps) {
+export function ReceiptUpload({
+  onImageUpload,
+  isAutoSave,
+  onAutoSaveChange,
+}: ReceiptUploadProps) {
   return (
     <Card>
       <CardHeader>
@@ -46,6 +53,26 @@ export function ReceiptUpload({ onImageUpload }: ReceiptUploadProps) {
               </label>
             </Button>
           </div>
+        </div>
+        <div className="flex items-center space-x-2 rounded-md border p-3">
+          <input
+            type="checkbox"
+            id="auto-save"
+            checked={isAutoSave}
+            onChange={(e) => onAutoSaveChange(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <Label
+            htmlFor="auto-save"
+            className="text-sm font-normal cursor-pointer"
+          >
+            Auto-save transaction
+          </Label>
+          <p className="text-xs text-muted-foreground ml-auto">
+            {isAutoSave
+              ? "Transaction will be saved automatically"
+              : "Review and edit before saving"}
+          </p>
         </div>
       </CardContent>
     </Card>

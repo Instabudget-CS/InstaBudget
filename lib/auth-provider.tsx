@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   email: string;
   full_name: string;

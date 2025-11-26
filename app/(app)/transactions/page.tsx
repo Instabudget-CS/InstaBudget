@@ -17,9 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Search, ShoppingCart, Receipt, Loader2 } from "lucide-react";
 import { useUserData } from "@/lib/user-data-provider";
-import type { Category } from "@/app/(app)/scan/types";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/hooks/use-toast";
+import { TransactionForm } from "@/app/(app)/scan/components/transaction-form";
+import type { Category, TransactionFormData } from "@/app/(app)/scan/types";
 
 type SortOption =
   | "date-desc"
@@ -46,10 +55,15 @@ const categoryLabels: Record<Category, string> = {
 };
 
 export default function TransactionsPage() {
-  const { transactions, loading } = useUserData();
+  const { transactions, loading, updateTransaction, refreshTransactions } =
+    useUserData();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
+  const [selectedTransaction, setSelectedTransaction] = useState<string | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = useState(false);
 
   const filteredAndSortedTransactions = useMemo(() => {
     let filtered = [...transactions];
@@ -117,6 +131,78 @@ export default function TransactionsPage() {
       style: "currency",
       currency,
     }).format(amount);
+  };
+
+  const selectedTransactionData = transactions.find(
+    (t) => t.id === selectedTransaction
+  );
+
+  const convertTransactionToFormData = (
+    transaction: (typeof transactions)[0]
+  ): TransactionFormData => {
+    const items = JSON.parse(transaction.transaction_items || "[]");
+    return {
+      merchant: transaction.merchant || "",
+      amount: transaction.total_amount.toString(),
+      category: (transaction.category || "other") as Category,
+      txnDate: transaction.transaction_date,
+      notes: transaction.notes || "",
+      items: items.map(
+        (item: { item?: string; name?: string; price: number }) => ({
+          name: item.item || item.name || "",
+          price: item.price || 0,
+        })
+      ),
+    };
+  };
+
+  const handleSaveTransaction = async (formData: TransactionFormData) => {
+    if (!selectedTransactionData) return;
+
+    setIsSaving(true);
+    try {
+      const transactionData = {
+        transaction_items: JSON.stringify(formData.items),
+        merchant: formData.merchant.trim() || null,
+        total_amount: Number.parseFloat(formData.amount),
+        category: formData.category.toLowerCase() || null,
+        transaction_date: formData.txnDate,
+        notes: formData.notes.trim() || null,
+      };
+
+      const { error } = await supabase
+        .from("transactions")
+        .update(transactionData)
+        .eq("id", selectedTransactionData.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      updateTransaction(selectedTransactionData.id, transactionData);
+
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
+
+      // Refresh to get latest data
+      await refreshTransactions();
+      setSelectedTransaction(null);
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -264,30 +350,33 @@ export default function TransactionsPage() {
               {filteredAndSortedTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
+                  onClick={() => setSelectedTransaction(transaction.id)}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 rounded-lg border p-4 transition-colors hover:bg-accent cursor-pointer"
                 >
-                  <div className="flex flex-1 items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <div className="flex flex-1 items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <ShoppingCart className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
                         <p className="font-medium truncate">
                           {transaction.merchant || "Unknown Merchant"}
                         </p>
                         {transaction.category && (
-                          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground shrink-0">
                             {categoryLabels[transaction.category as Category] ||
                               transaction.category}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <span>{formatDate(transaction.transaction_date)}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
+                        <span className="shrink-0">
+                          {formatDate(transaction.transaction_date)}
+                        </span>
                         {transaction.notes && (
                           <>
-                            <span>•</span>
-                            <span className="truncate">
+                            <span className="hidden sm:inline">•</span>
+                            <span className="line-clamp-2">
                               {transaction.notes}
                             </span>
                           </>
@@ -295,7 +384,7 @@ export default function TransactionsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right shrink-0">
                     <p className="text-lg font-semibold text-primary">
                       {formatCurrency(
                         transaction.total_amount,
@@ -309,6 +398,31 @@ export default function TransactionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog
+        open={!!selectedTransaction}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTransaction(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+          </DialogHeader>
+          {selectedTransactionData && (
+            <TransactionForm
+              onSave={handleSaveTransaction}
+              onCancel={() => setSelectedTransaction(null)}
+              isReadOnly={false}
+              isLoading={isSaving}
+              initialData={convertTransactionToFormData(
+                selectedTransactionData
+              )}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
