@@ -1,233 +1,96 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Calendar, Wallet } from 'lucide-react';
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-  BudgetCycleCard,
-  type BudgetCycle,
-  type ProfileBudgetConfig,
-} from '@/components/ui/budget_cycle_card';
-import {
-  CategoryLimitsCard,
-  type BudgetCategoryRow,
-} from '@/components/ui/category_limits_card';
-import { BudgetProgressCard } from '@/components/ui/budget_progress_card';
+import { BudgetCycleCard } from "@/components/ui/budget_cycle_card";
+import { CategoryLimitsCard } from "@/components/ui/category_limits_card";
+import { BudgetProgressCard } from "@/components/ui/budget_progress_card";
+import { useAuth } from "@/lib/auth-provider";
+import { useUserData } from "@/lib/user-data-provider";
+import { useBudgetState } from "./hooks/use-budget-state";
+import { useBudgetCategories } from "./hooks/use-budget-categories";
+import { useBudgetCalculations } from "./hooks/use-budget-calculations";
+import { useBudgetSave } from "./hooks/use-budget-save";
+import { BudgetHeader } from "./components/budget-header";
+import { BudgetSnapshotCard } from "./components/budget-snapshot-card";
+import { BudgetSaveButton } from "./components/budget-save-button";
+import { LoadingState } from "./components/loading-state";
 
 export default function BudgetPage() {
-  // TODO: Implement authGuard() to protect this route
+  const { user, profile, updateProfile } = useAuth();
+  const {
+    budgetCategories,
+    loading,
+    addBudgetCategory,
+    updateBudgetCategory,
+    deleteBudgetCategory,
+    refreshBudgetCategories,
+  } = useUserData();
 
-  // The following matches the profiles table in DB
-  const todayISO = new Date().toISOString().split('T')[0];
-
-  // TODO: Replace the following hard coded data with data from backend API
-  // useEffect() to load user data from backend
-
-  const [profileBudget, setProfileBudget] = useState<ProfileBudgetConfig>({
-    // map to profiles.cycle_duration
-    cycle_duration: 'monthly',
-    // map to profiles.cycle_startDate and cycle_endDate
-    cycle_startDate: todayISO,
-    // default to no end date
-    cycle_endDate: '',
-    // map to profiles.starting_balance
-    starting_balance: '0.00',
-    // map to profiles.currency
-    currency: 'USD',
-    // map to profiles.budget_auto_renew
-    budget_auto_renew: true,
+  const { profileBudget, handleProfileBudgetChange } = useBudgetState({
+    profile,
   });
 
-  const handleProfileBudgetChange = (update: Partial<ProfileBudgetConfig>) => {
-    setProfileBudget((prev) => ({ ...prev, ...update }));
-  };
-
-  // The following mock data matches the budget_categories table in DB
-  const [categories, setCategories] = useState<BudgetCategoryRow[]>([
-    {
-      id: 'groceries-id',
-      user_id: 'demo-user',
-      category_name: 'Groceries',
-      limit_amount: '400',
-      spent_amount: '220.5',
-      created_at: '',
-      updated_at: '',
-    },
-    {
-      id: 'transport-id',
-      user_id: 'demo-user',
-      category_name: 'Transport',
-      limit_amount: '150',
-      spent_amount: '80',
-      created_at: '',
-      updated_at: '',
-    },
-    {
-      id: 'rent-id',
-      user_id: 'demo-user',
-      category_name: 'Rent',
-      limit_amount: '1200',
-      spent_amount: '1200',
-      created_at: '',
-      updated_at: '',
-    },
-  ]);
-
-  // From budget categories we calculate their progress
-
-  // Calcluate progress for each category
-  const categoryProgress = categories.map((cat) => ({
-    id: cat.id,
-    name: cat.category_name,
-    spent: Number.parseFloat(cat.spent_amount || '0'),
-    limit: Number.parseFloat(cat.limit_amount || '0'),
-  }));
-
-  // Calculate the combined progress for all categories
-  const totalLimit = categoryProgress.reduce((sum, c) => sum + c.limit, 0);
-  const totalSpent = categoryProgress.reduce((sum, c) => sum + c.spent, 0);
-  const totalCategoryLimit = categories.reduce((sum, c) => {
-    const value = Number.parseFloat(c.limit_amount || '0');
-    return sum + (Number.isNaN(value) ? 0 : value);
-  }, 0);
-
-  const handleSaveAll = () => {
-    // TODO: send data to DB corresponding to matching tables
-    console.log('Saving profile budget config (profiles table):', {
-      profileBudget,
+  const { localCategories, handleCategoriesChange, saveCategories } =
+    useBudgetCategories({
+      budgetCategories,
+      addBudgetCategory,
+      updateBudgetCategory,
+      deleteBudgetCategory,
+      refreshBudgetCategories,
+      userId: user?.id,
     });
-    console.log('Saving budget categories (budget_categories table):', {
-      categories,
-    });
-    // TODO alert users of successful save and data persistence
-    // toast({ title: 'Saved', description: 'Budget configuration updated.' });
-  };
 
-  const {
-    cycle_duration,
-    cycle_startDate,
-    cycle_endDate,
-    starting_balance,
-    currency,
-    budget_auto_renew,
-  } = profileBudget;
+  const { categoryProgress, totalLimit, totalSpent, totalCategoryLimit } =
+    useBudgetCalculations({
+      localCategories,
+    });
+
+  const { isSaving, handleSaveAll } = useBudgetSave({
+    user,
+    profile,
+    profileBudget,
+    updateProfile,
+    saveCategories,
+  });
+
+  if (loading) {
+    return <LoadingState />;
+  }
 
   return (
     <div className="mx-auto mb-20 max-w-4xl space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-green-500">
-            Budget Configuration
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Confiure your budgeting cycle and categories
-          </p>
-        </div>
-      </div>
+      <BudgetHeader />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        {/* Card for profile budget settings*/}
         <BudgetCycleCard
           config={profileBudget}
           onChange={handleProfileBudgetChange}
         />
-        {/* Local Card Component that is dynamic to user input but not reusable*/}
-        <Card className="relative">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-500">
-              <Calendar className="h-4 w-4" />
-              Current Budget Snapshot
-            </CardTitle>
-            <CardDescription>Overview</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Cycle duration:
-              </span>{' '}
-              <span className="capitalize">{cycle_duration}</span>
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Cycle start date:
-              </span>{' '}
-              {new Date(cycle_startDate).toLocaleDateString()}
-            </p>
-
-            {cycle_endDate && (
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  Cycle end date:
-                </span>{' '}
-                {new Date(cycle_endDate).toLocaleDateString()}
-              </p>
-            )}
-
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Starting balance:
-              </span>{' '}
-              {currency} {Number.parseFloat(starting_balance || '0').toFixed(2)}
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Budget auto-renew:
-              </span>{' '}
-              {budget_auto_renew ? 'Enabled' : 'Disabled'}
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Total category limits:
-              </span>{' '}
-              {currency} {totalCategoryLimit.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
+        <BudgetSnapshotCard
+          profileBudget={profileBudget}
+          totalCategoryLimit={totalCategoryLimit}
+        />
       </div>
 
-      {/* Card for users to define budget_categories */}
       <CategoryLimitsCard
-        categories={categories}
-        onChange={setCategories}
-        currency={currency}
+        categories={localCategories}
+        onChange={handleCategoriesChange}
+        currency={profileBudget.currency}
+        userId={user?.id || ""}
       />
-
-      {/* Card to help users visualize their current spending progress */}
-      {/* TODO: Probably place this elsewhere like dashboard where it makes more sense, but it is here now to test*/}
-      {/* TODO: Also links to before, replace props with real data from backend */}
 
       <BudgetProgressCard
         cycleLabel="Current Cycle"
         cycleRange={{
-          start: cycle_startDate,
-          end: cycle_endDate || undefined,
+          start: profileBudget.cycle_startDate,
+          end: profileBudget.cycle_endDate || undefined,
         }}
         totalLimit={totalLimit}
         totalSpent={totalSpent}
         categories={categoryProgress}
-        currency={currency}
+        currency={profileBudget.currency}
       />
 
-      <div className="flex justify-end pt-2">
-        <Button
-          onClick={handleSaveAll}
-          className="flex items-center gap-2 bg-green-400 text-white hover:bg-green-500"
-        >
-          <Wallet className="h-4 w-4" />
-          Save Budget Configuration
-        </Button>
-      </div>
+      <BudgetSaveButton onSave={handleSaveAll} isSaving={isSaving} />
     </div>
   );
 }
