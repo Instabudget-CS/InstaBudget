@@ -3,17 +3,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CardContent } from "@/components/ui/card";
 import { User, Loader2 } from "lucide-react";
-import { CURRENCIES, BUDGET_CYCLES } from "../constants";
-import type { ProfileFormData, BudgetCycle } from "../types";
+import type { ProfileFormData } from "../types";
 
 interface ProfileFormProps {
   formData: ProfileFormData;
@@ -60,56 +52,14 @@ export function ProfileForm({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="currency">Preferred Currency</Label>
-          <Select
-            value={formData.currency}
-            onValueChange={(value) => onFieldChange("currency", value)}
-          >
-            <SelectTrigger id="currency">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map((currency) => (
-                <SelectItem key={currency.value} value={currency.value}>
-                  {currency.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="occupation">Occupation</Label>
-          <Input
-            id="occupation"
-            value={formData.occupation}
-            onChange={(e) => onFieldChange("occupation", e.target.value)}
-            placeholder="e.g., Software Engineer, Teacher, etc."
-          />
-        </div>
-      </div>
-
       <div className="space-y-2">
-        <Label htmlFor="cycle">Budget Cycle</Label>
-        <Select
-          value={formData.cycle}
-          onValueChange={(value) =>
-            onFieldChange("cycle", value as BudgetCycle)
-          }
-        >
-          <SelectTrigger id="cycle">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BUDGET_CYCLES.map((cycle) => (
-              <SelectItem key={cycle.value} value={cycle.value}>
-                {cycle.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="occupation">Occupation</Label>
+        <Input
+          id="occupation"
+          value={formData.occupation}
+          onChange={(e) => onFieldChange("occupation", e.target.value)}
+          placeholder="e.g., Software Engineer, Teacher, etc."
+        />
       </div>
 
       <div className="flex justify-end pt-2">

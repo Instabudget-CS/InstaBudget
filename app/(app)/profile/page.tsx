@@ -32,9 +32,7 @@ export default function ProfilePage() {
     try {
       await updateProfile({
         full_name: formData.fullName,
-        preferred_currency: formData.currency,
         occupation: formData.occupation || undefined,
-        cycle_duration: formData.cycle,
       });
 
       toast({
