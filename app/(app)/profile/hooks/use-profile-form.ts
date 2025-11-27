@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import type { UserProfile } from "@/lib/auth-provider";
-import type { ProfileFormData, BudgetCycle } from "../types";
+import type { ProfileFormData } from "../types";
 
 interface UseProfileFormProps {
   profile: UserProfile | null;
@@ -13,18 +13,13 @@ export function useProfileForm({ profile, userEmail }: UseProfileFormProps) {
       return {
         fullName: profile.full_name || "",
         email: userEmail || "",
-        currency: profile.preferred_currency || "USD",
         occupation: profile.occupation || "",
-        cycle:
-          (profile.cycle_duration as BudgetCycle) || ("monthly" as BudgetCycle),
       };
     }
     return {
       fullName: "",
       email: userEmail || "",
-      currency: "USD",
       occupation: "",
-      cycle: "monthly",
     };
   }, [profile, userEmail]);
 

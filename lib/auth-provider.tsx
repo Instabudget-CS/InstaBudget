@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -12,7 +18,11 @@ export interface UserProfile {
   occupation?: string;
   age?: number;
   timezone: string;
-  cycle_duration?: "weekly" | "biweekly" | "monthly";
+  cycle_duration?: "monthly";
+  cycle_startDate?: string;
+  cycle_endDate?: string;
+  starting_balance?: number;
+  budget_auto_renew?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +43,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const fetchProfile = async (userId: string) => {
+  const checkAndRenewCycle = async (
+    profileData: UserProfile | null,
+    userId: string
+  ) => {
+    if (!profileData) return profileData;
+
+    // Only check if budget_auto_renew is enabled
+    if (!profileData.budget_auto_renew) {
+      return profileData;
+    }
+
+    // Check if cycle_endDate exists and has passed
+    if (!profileData.cycle_endDate) {
+      return profileData;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(profileData.cycle_endDate);
+    endDate.setHours(0, 0, 0, 0);
+
+    // If end date hasn't passed yet, no need to renew
+    if (endDate >= today) {
+      return profileData;
+    }
+
+    // Calculate new cycle dates
+    // New start date = old end date + 1 day
+    const newStartDate = new Date(endDate);
+    newStartDate.setDate(newStartDate.getDate() + 1);
+
+    // New end date = new start date + 30 days
+    const newEndDate = new Date(newStartDate);
+    newEndDate.setDate(newEndDate.getDate() + 30);
+
+    const newStartDateISO = newStartDate.toISOString().split("T")[0];
+    const newEndDateISO = newEndDate.toISOString().split("T")[0];
+
+    // Update profile with new cycle dates
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          cycle_startDate: newStartDateISO,
+          cycle_endDate: newEndDateISO,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error auto-renewing budget cycle:", error);
+        return profileData;
+      }
+
+      // Return updated profile data
+      return {
+        ...profileData,
+        cycle_startDate: newStartDateISO,
+        cycle_endDate: newEndDateISO,
+      };
+    } catch (error) {
+      console.error("Error auto-renewing budget cycle:", error);
+      return profileData;
+    }
+  };
+
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       console.log("getting profile");
       const { data, error } = await supabase
@@ -46,13 +122,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Error fetching profile:", error);
         setProfile(null);
       } else {
-        setProfile(data ?? null);
+        const profileData = data ?? null;
+        // Check and auto-renew cycle if needed
+        const updatedProfile = await checkAndRenewCycle(profileData, userId);
+        setProfile(updatedProfile);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
       setProfile(null);
     }
-  };
+  }, []);
 
   const refreshProfile = async () => {
     if (!user) {
@@ -147,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile]);
 
   const value = {
     user,
