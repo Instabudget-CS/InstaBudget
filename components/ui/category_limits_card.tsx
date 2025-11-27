@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from "lucide-react";
 
 import {
   Card,
@@ -8,10 +8,36 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Spending category enum values
+export const SPENDING_CATEGORIES = [
+  "groceries",
+  "dining",
+  "transport",
+  "shopping",
+  "entertainment",
+  "utilities",
+  "health",
+  "education",
+  "rent",
+  "subscriptions",
+  "travel",
+  "income",
+  "other",
+] as const;
+
+export type SpendingCategory = (typeof SPENDING_CATEGORIES)[number];
 
 // matches the budget_categories table
 export interface BudgetCategoryRow {
@@ -28,12 +54,14 @@ interface CategoryLimitsCardProps {
   categories: BudgetCategoryRow[];
   onChange: (categories: BudgetCategoryRow[]) => void;
   currency: string;
+  userId?: string;
 }
 
 export function CategoryLimitsCard({
   categories,
   onChange,
   currency,
+  userId = "",
 }: CategoryLimitsCardProps) {
   const updateCategoryField = (
     id: string,
@@ -54,12 +82,12 @@ export function CategoryLimitsCard({
       {
         // Matches DB for budget_categories table
         id,
-        user_id: 'demo-user',
-        category_name: '',
-        limit_amount: '',
-        spent_amount: '0',
-        created_at: '',
-        updated_at: '',
+        user_id: userId,
+        category_name: "",
+        limit_amount: "",
+        spent_amount: "0",
+        created_at: "",
+        updated_at: "",
       },
     ]);
   };
@@ -84,10 +112,9 @@ export function CategoryLimitsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-3">
-          <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-center gap-3 text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-[2fr_1fr_auto] items-center gap-3 text-xs font-medium text-muted-foreground">
             <span>Category Name</span>
             <span>Limit / Cycle</span>
-            <span>Spent (optional)</span>
             <span className="text-right">Actions</span>
           </div>
 
@@ -95,22 +122,44 @@ export function CategoryLimitsCard({
             {categories.map((cat) => (
               <div
                 key={cat.id}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 sm:grid-cols-[2fr_1fr_1fr_auto]"
+                className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 sm:grid-cols-[2fr_1fr_auto]"
               >
                 {/* category_name */}
                 <div className="space-y-1">
                   <Label className="sm:hidden">Category Name</Label>
-                  <Input
-                    value={cat.category_name}
-                    placeholder="e.g. Groceries"
-                    onChange={(e) =>
-                      updateCategoryField(
-                        cat.id,
-                        'category_name',
-                        e.target.value
-                      )
+                  <Select
+                    value={cat.category_name || ""}
+                    onValueChange={(value) =>
+                      updateCategoryField(cat.id, "category_name", value)
                     }
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPENDING_CATEGORIES.map((category) => {
+                        // Check if this category is already used by another category
+                        const isUsed = categories.some(
+                          (c) =>
+                            c.id !== cat.id &&
+                            c.category_name.toLowerCase() ===
+                              category.toLowerCase()
+                        );
+                        return (
+                          <SelectItem
+                            key={category}
+                            value={category}
+                            disabled={isUsed}
+                          >
+                            <span className="capitalize">
+                              {category}
+                              {isUsed && " (already used)"}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* limit_amount */}
@@ -128,30 +177,7 @@ export function CategoryLimitsCard({
                       onChange={(e) =>
                         updateCategoryField(
                           cat.id,
-                          'limit_amount',
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* spent_amount*/}
-                <div className="space-y-1">
-                  <Label className="sm:hidden">Spent</Label>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-muted-foreground">
-                      {currency}
-                    </span>
-                    <Input
-                      value={cat.spent_amount}
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      onChange={(e) =>
-                        updateCategoryField(
-                          cat.id,
-                          'spent_amount',
+                          "limit_amount",
                           e.target.value
                         )
                       }

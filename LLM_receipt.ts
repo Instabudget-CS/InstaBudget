@@ -1,132 +1,242 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const ai = new GoogleGenerativeAI(Deno.env.get("GEMINI_API_KEY")!);
-
+import { GoogleGenerativeAI } from "npm:@google/generative-ai";
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  Deno.env.get("SUPABASE_URL"),
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 );
-
+if (!Deno.env.get("GEMINI_API_KEY")) {
+  throw new Error("GEMINI_API_KEY is not set");
+}
+const ai = new GoogleGenerativeAI(Deno.env.get("GEMINI_API_KEY"));
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const mode = url.searchParams.get("mode");
-
   if (mode === "receipt") return await handleReceipt(req);
   if (mode === "manual") return await handleManual(req);
-
-  return new Response(JSON.stringify({ error: "Missing or invalid mode" }), {
-    status: 400,
-    headers: { "Content-Type": "application/json" },
-  });
-});
-
-async function handleReceipt(req: Request) {
-  // TODO: parse form-data, call Gemini, save result
-  // need to figure out path for the image
-
-  const form = await req.formData();
-  const file = form.get("file") as File;
-
-  if (!file) {
-    return new Response(JSON.stringify({ error: "Missing file" }), {
+  if (mode == "confirmation") return await handleConfirmation(req);
+  return new Response(
+    JSON.stringify({
+      error: "Missing or invalid mode",
+    }),
+    {
       status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+});
+function uint8ToBase64(uint8) {
+  let binary = "";
+  const len = uint8.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(uint8[i]);
   }
-
-  const buffer = await file.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-
-  const receipt = [
-    {
-      inlineData: { mimeType: file.type, data: base64 },
-    },
-    {
-      text:
-        "Please analyze the uploaded receipt image. Extract all data fields listed in the JSON schema below and return the result strictly as a single JSON object. Ensure 'transaction_items' is an array of objects. " +
-        JSON.stringify({
-          request_type: "RECEIPT_ANALYSIS",
-          output_format: "JSON",
-          json_schema: {
-            merchant: "string (name of the store or person)",
-            transaction_date: "string (YYYY-MM-DD)",
-            total_amount: "number (the final amount paid)",
-            currency: "string (e.g., USD, EUR)",
-            category:
-              "enum_placeholder (Please replace this with one of your predefined categories, e.g., 'Groceries', 'Fuel', 'Entertainment')",
-            transaction_items: [
-              {
-                item: "string (name of the product)",
-                price: "number (unit or total price of the item)",
-              },
-            ],
-            notes:
-              "string (any helpful or interesting observations about the receipt, e.g., location, time, pump number)",
-          },
-        }),
-    },
-  ];
-
-  const receiptData = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: receipt,
-  });
-  const geminiOutput = receiptData.response.text();
-  console.log("Gemini raw output", geminiOutput);
-
-  let parsed;
+  return btoa(binary);
+}
+async function handleReceipt(req) {
   try {
-    parsed = JSON.parse(geminiOutput);
+    const form = await req.formData();
+    const file = form.get("receipt_file");
+    if (!file || !(file instanceof File)) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Missing or invalid file upload. Ensure the key is 'receipt_file'.",
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+    const buffer = await file.arrayBuffer();
+    const base64Receipt = uint8ToBase64(new Uint8Array(buffer));
+    // Get the model instance correctly
+    const model = ai.getGenerativeModel({
+      model: "gemini-2.5-flash",
+    });
+    const prompt = `
+Please analyze the uploaded receipt image. 
+Return the result **STRICTLY** as a single JSON object. 
+**DO NOT** include any markdown formatting (like \`\`\`json\`), notes, or conversational text outside of the JSON object.
+
+JSON schema:
+${JSON.stringify(
+  {
+    transaction_items: [
+      {
+        item: "string (name of the product)",
+        price: "number (unit or total price)",
+      },
+    ],
+    merchant: "string (name of the store or person)",
+    total_amount: "number (the final amount paid)",
+    // 4. currency
+    currency: "string (e.g., USD, EUR)",
+    category:
+      "string (MUST be one of: groceries, dining, transport, shopping, entertainment, utilities, health, education, rent, subscriptions, travel, income, other)",
+    transaction_date: "string (YYYY-MM-DD)",
+    notes: "string (any helpful observations)",
+  },
+  null,
+  2
+)}
+`;
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: file.type || "image/png",
+          data: base64Receipt,
+        },
+      },
+      {
+        text: prompt,
+      },
+    ]);
+    const response = await result.response;
+    const geminiOutput = response.text();
+    if (!geminiOutput || geminiOutput === "") {
+      throw new Error("Gemini returned an empty response.");
+    }
+    let receiptData;
+    try {
+      const cleanedOutput = geminiOutput
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+      receiptData = JSON.parse(cleanedOutput);
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({
+          error: "Failed to parse Gemini response",
+          details: parseError.message,
+          rawOutput: geminiOutput,
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: receiptData,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: "Gemini did not return valid JSON" }),
+      JSON.stringify({
+        error: "Gemini API error",
+        details: err.message,
+      }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
   }
-
-  if (
-    !parsed.merchant ||
-    !parsed.total_amount ||
-    !parsed.currency ||
-    !parsed.category
-  ) {
+}
+async function handleManual(req) {
+  try {
+    const receiptData = await req.json();
+    const { error } = await supabase.from("transactions").insert(receiptData);
+    if (error) {
+      return new Response(
+        JSON.stringify({
+          error: error.message,
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
     return new Response(
-      JSON.stringify({ error: "Incomplete data from Gemini" }),
+      JSON.stringify({
+        success: true,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: "Invalid request",
+        details: err.message,
+      }),
       {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
   }
-  const { data, error } = await supabase
-    .from("transactions")
-    .insert(Array.isArray(parsed) ? parsed : [parsed]);
-
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-    });
-  }
-
-  // Return success
-  return new Response(JSON.stringify({ success: true, data }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
 }
-
-async function handleManual(req: Request) {
-  // TODO: parse JSON body, save to DB
-  const receiptData = await req.json();
-  const { error } = await supabase.from("transactions").insert(receiptData);
-  if (error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-    });
-  return new Response(JSON.stringify({ success: true }));
+async function handleConfirmation(req) {
+  try {
+    const confirmationReceipt = await req.json();
+    const { error } = await supabase
+      .from("transactions")
+      .insert(confirmationReceipt);
+    if (error) {
+      return new Response(
+        JSON.stringify({
+          error: error.message,
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        success: true,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: "Invalid input",
+        details: err.message,
+      }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
 }

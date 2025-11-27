@@ -1,100 +1,107 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-provider";
+import { useTransactions } from "./user-data-provider/hooks/use-transactions";
+import { useReceipts } from "./user-data-provider/hooks/use-receipts";
+import { useBudgetCategories } from "./user-data-provider/hooks/use-budget-categories";
+import { calculateCategorySpent } from "./user-data-provider/utils/calculate-category-spent";
+import type { UserDataContextType } from "./user-data-provider/types";
 
-interface Transaction {
-  id: string;
-  user_id: string;
-  transaction_items: string; // JSON stringified
-  merchant: string | null;
-  total_amount: number;
-  currency: string;
-  category: string | null;
-  transaction_date: string;
-  notes: string | null;
-  receipt_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface UserDataContextType {
-  transactions: Transaction[];
-  loading: boolean;
-  refreshTransactions: () => Promise<void>;
-  addTransaction: (transaction: Transaction) => void;
-  updateTransaction: (id: string, updates: Partial<Transaction>) => void;
-  deleteTransaction: (id: string) => void;
-}
+// Re-export types for backward compatibility
+export type {
+  Transaction,
+  Receipt,
+  BudgetCategory,
+  UserDataContextType,
+} from "./user-data-provider/types";
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
   undefined
 );
 
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
 
-  const fetchTransactions = async () => {
-    if (!user) {
-      setTransactions([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("transaction_date", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching transactions:", error);
-        return;
-      }
-
-      setTransactions(data || []);
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTransactions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const refreshTransactions = async () => {
-    await fetchTransactions();
-  };
-
-  const addTransaction = (transaction: Transaction) => {
-    setTransactions((prev) => [transaction, ...prev]);
-  };
-
-  const updateTransaction = (id: string, updates: Partial<Transaction>) => {
-    setTransactions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
-  };
-
-  const deleteTransaction = (id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  const value = {
+  const {
     transactions,
-    loading,
+    fetchTransactions,
     refreshTransactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
+  } = useTransactions({ user });
+
+  const {
+    receipts,
+    fetchReceipts,
+    refreshReceipts,
+    addReceipt,
+    getReceiptUrl,
+  } = useReceipts({ user });
+
+  const {
+    budgetCategories,
+    fetchBudgetCategories,
+    refreshBudgetCategories,
+    addBudgetCategory,
+    updateBudgetCategory,
+    deleteBudgetCategory,
+  } = useBudgetCategories({
+    user,
+    profile,
+    transactions,
+  });
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (user) {
+        setLoading(true);
+        await Promise.all([
+          fetchTransactions(),
+          fetchReceipts(),
+          fetchBudgetCategories(),
+        ]);
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile?.cycle_startDate, profile?.cycle_endDate]);
+
+  const calculateCategorySpentWrapper = (
+    categoryName: string,
+    startDate?: string,
+    endDate?: string
+  ): number => {
+    return calculateCategorySpent(
+      categoryName,
+      transactions,
+      startDate,
+      endDate
+    );
+  };
+
+  const value: UserDataContextType = {
+    transactions,
+    receipts,
+    budgetCategories,
+    loading,
+    refreshTransactions,
+    refreshReceipts,
+    refreshBudgetCategories,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    addReceipt,
+    getReceiptUrl,
+    addBudgetCategory,
+    updateBudgetCategory,
+    deleteBudgetCategory,
+    calculateCategorySpent: calculateCategorySpentWrapper,
   };
 
   return (
