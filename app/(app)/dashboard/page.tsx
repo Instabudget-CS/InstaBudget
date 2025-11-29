@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Plus, ScanLine } from 'lucide-react';
+import { ScanLine } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { BudgetProgressCard } from '@/components/ui/budget_progress_card';
@@ -10,6 +10,7 @@ import { LLMInsightsCard } from '@/components/ui/llm_insight_card';
 
 import { useUserData } from '@/lib/user-data-provider';
 import { useAuth } from '@/lib/auth-provider';
+import { useBudgetLimitToasts } from '@/hooks/use-budget-limit-toasts';
 
 const todayISO = new Date().toISOString().split('T')[0];
 
@@ -54,6 +55,12 @@ export default function DashboardPage() {
     tip: 'Placeholder for budgeting tip',
   };
 
+  useBudgetLimitToasts({
+    categories: categoryProgress,
+    totalLimit,
+    totalSpent,
+  });
+
   return (
     <div>
       <div>
@@ -62,18 +69,6 @@ export default function DashboardPage() {
           Budgeting progress, transaction history, and insights at a glance.
         </p>
         <div className="flex flex-wrap items-center gap-2 py-5">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="border-green-400 text-xs text-green-700 hover:bg-green-50"
-            onClick={() => {
-              router.push('/transactions');
-            }}
-          >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Add transaction
-          </Button>
           <Button
             type="button"
             variant="outline"

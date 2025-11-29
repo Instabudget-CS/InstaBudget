@@ -1,18 +1,19 @@
-"use client";
+'use client';
 
-import { BudgetCycleCard } from "@/components/ui/budget_cycle_card";
-import { CategoryLimitsCard } from "@/components/ui/category_limits_card";
-import { BudgetProgressCard } from "@/components/ui/budget_progress_card";
-import { useAuth } from "@/lib/auth-provider";
-import { useUserData } from "@/lib/user-data-provider";
-import { useBudgetState } from "./hooks/use-budget-state";
-import { useBudgetCategories } from "./hooks/use-budget-categories";
-import { useBudgetCalculations } from "./hooks/use-budget-calculations";
-import { useBudgetSave } from "./hooks/use-budget-save";
-import { BudgetHeader } from "./components/budget-header";
-import { BudgetSnapshotCard } from "./components/budget-snapshot-card";
-import { BudgetSaveButton } from "./components/budget-save-button";
-import { LoadingState } from "./components/loading-state";
+import { BudgetCycleCard } from '@/components/ui/budget_cycle_card';
+import { CategoryLimitsCard } from '@/components/ui/category_limits_card';
+import { BudgetProgressCard } from '@/components/ui/budget_progress_card';
+import { useAuth } from '@/lib/auth-provider';
+import { useUserData } from '@/lib/user-data-provider';
+import { useBudgetState } from './hooks/use-budget-state';
+import { useBudgetCategories } from './hooks/use-budget-categories';
+import { useBudgetCalculations } from './hooks/use-budget-calculations';
+import { useBudgetSave } from './hooks/use-budget-save';
+import { BudgetHeader } from './components/budget-header';
+import { BudgetSnapshotCard } from './components/budget-snapshot-card';
+import { BudgetSaveButton } from './components/budget-save-button';
+import { LoadingState } from './components/loading-state';
+import { useBudgetLimitToasts } from '@/hooks/use-budget-limit-toasts';
 
 export default function BudgetPage() {
   const { user, profile, updateProfile } = useAuth();
@@ -52,6 +53,12 @@ export default function BudgetPage() {
     saveCategories,
   });
 
+  useBudgetLimitToasts({
+    categories: categoryProgress,
+    totalLimit,
+    totalSpent,
+  });
+
   if (loading) {
     return <LoadingState />;
   }
@@ -75,7 +82,7 @@ export default function BudgetPage() {
         categories={localCategories}
         onChange={handleCategoriesChange}
         currency={profileBudget.currency}
-        userId={user?.id || ""}
+        userId={user?.id || ''}
       />
 
       <BudgetProgressCard
