@@ -101,6 +101,7 @@ You are analyzing an image to determine if it is a purchase / payment receipt.
      "transaction_date": "YYYY-MM-DD",
      "notes": "string"
    }
+   Note: Include taxes and tips as part of an item along with their price in the transactions_items list
 
 STRICT RULES FOR 'category':
 - It MUST be exactly one of the following options:
@@ -144,14 +145,12 @@ Rules:
     } catch (err) {
       return jsonError("Failed to parse Gemini output", textOutput);
     }
-    // ---- handle "not a receipt" case ----
     if (!aiData.is_receipt) {
       return jsonError(
         "Uploaded image is not recognized as a receipt",
         aiData.reason ?? "Gemini classified this image as non-receipt"
       );
     }
-    // ---- sanity check on key fields ----
     if (
       aiData.total_amount == null ||
       !aiData.merchant ||
@@ -199,7 +198,6 @@ Rules:
     return jsonError("Unexpected error", err?.message ?? String(err));
   }
 });
-// ---------- helpers ----------
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
