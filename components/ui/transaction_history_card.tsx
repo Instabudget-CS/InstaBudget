@@ -14,7 +14,7 @@ export interface TransactionRow {
   id: string;
   user_id: string;
   transaction_items: string | null;
-  merchant: string;
+  merchant: string | null;
   total_amount: number;
   currency: string;
   category: string | null;
@@ -44,7 +44,7 @@ export function TransactionHistoryCard({
   );
 
   return (
-    <Card className="relative">
+    <Card className="relative cursor-pointer transition-all hover:shadow-xl">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2 text-green-500">
