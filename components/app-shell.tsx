@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 import {
   Camera,
   PieChart,
@@ -9,11 +9,12 @@ import {
   Bell,
   List,
   LogOut,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+  Wallet,
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,27 +22,28 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth-provider";
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth-provider';
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 const navItems = [
-  { href: "/scan", label: "Scan", icon: Camera },
-  { href: "/dashboard", label: "Dashboard", icon: PieChart },
-  { href: "/transactions", label: "Transactions", icon: List },
-  { href: "/receipts", label: "Receipts", icon: Images },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: '/dashboard', label: 'Dashboard', icon: PieChart },
+  { href: '/scan', label: 'Scan', icon: Camera },
+  { href: '/transactions', label: 'Transactions', icon: List },
+  { href: '/receipts', label: 'Receipts', icon: Images },
+  { href: '/budget', label: 'Budget', icon: Wallet },
+  { href: '/profile', label: 'Profile', icon: User },
 ];
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { signOut, profile, user } = useAuth();
   const handleSignOut = async () => {
-    console.log("clicked sign out");
+    console.log('clicked sign out');
     await signOut();
   };
   return (
@@ -74,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {profile?.full_name?.charAt(0).toUpperCase() ||
                         user?.email?.charAt(0).toUpperCase() ||
-                        "U"}
+                        'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -87,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {profile?.full_name || "User"}
+                      {profile?.full_name || 'User'}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user?.email}
@@ -126,10 +128,10 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                  'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -158,8 +160,8 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-xs font-medium transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  'flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-xs font-medium transition-colors',
+                  isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
                 <Icon className="h-5 w-5" />
