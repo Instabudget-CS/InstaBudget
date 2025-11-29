@@ -16,7 +16,7 @@ export interface LLMInsightsCardProps {
 
 export function LLMInsightsCard({ weeklySummary, tip }: LLMInsightsCardProps) {
   return (
-    <Card className="relative">
+    <Card className="relative transition-all hover:shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-green-500">
           <Sparkles className="h-4 w-4" />
