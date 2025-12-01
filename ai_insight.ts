@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     if (budgetErr) {
       return jsonError("Failed to fetch budget categories", budgetErr.message);
     }
-    const { data: txs, error: txErr } = await supabase
+    const { data: transactions, error: txErr } = await supabase
       .from("transactions")
       .select("category, total_amount, transaction_date")
       .eq("user_id", finalUserId)
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       return jsonError("Failed to fetch transactions", txErr.message);
     }
     const safeBudgets = budgets ?? [];
-    const safeTxs = txs ?? [];
+    const safeTxs = transactions ?? [];
     const spentByCategory = {};
     let totalSpent = 0;
     for (const tx of safeTxs) {
@@ -77,14 +77,14 @@ Deno.serve(async (req) => {
     }
     let totalLimit = 0;
     const categoryStats = safeBudgets.map((bc) => {
-      const cat = bc.category_name;
+      const category = bc.category_name;
       const limit = Number(bc.limit_amount) || 0;
-      const spent = spentByCategory[cat] ?? 0;
+      const spent = spentByCategory[category] ?? 0;
       const percent_used =
         limit > 0 ? Number((spent / limit).toFixed(3)) : null;
       totalLimit += limit;
       return {
-        category: cat,
+        category: category,
         limit,
         spent,
         percent_used,
