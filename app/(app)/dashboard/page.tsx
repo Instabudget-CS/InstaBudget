@@ -8,8 +8,11 @@ import { BudgetProgressCard } from "@/components/ui/budget_progress_card";
 import { TransactionHistoryCard } from "@/components/ui/transaction_history_card";
 import { LLMInsightsCard } from "@/components/ui/llm_insight_card";
 
-import { useUserData } from "@/lib/user-data-provider";
-import { useAuth } from "@/lib/auth-provider";
+import { useUserData } from '@/lib/user-data-provider';
+import { useAuth } from '@/lib/auth-provider';
+import { useBudgetLimitToasts } from '@/hooks/use-budget-limit-toasts';
+
+const todayISO = new Date().toISOString().split('T')[0];
 
 export default function DashboardPage() {
   // For page routing
@@ -50,6 +53,19 @@ export default function DashboardPage() {
   const totalLimit = categoryProgress.reduce((sum, c) => sum + c.limit, 0);
   const totalSpent = categoryProgress.reduce((sum, c) => sum + c.spent, 0);
 
+  // TODO:
+  // Replace with real insights from backend LLM
+  const insights = {
+    weeklySummary: 'Placeholder for weekly sum',
+    tip: 'Placeholder for budgeting tip',
+  };
+
+  useBudgetLimitToasts({
+    categories: categoryProgress,
+    totalLimit,
+    totalSpent,
+  });
+
   return (
     <div>
       <div>
@@ -58,18 +74,6 @@ export default function DashboardPage() {
           Budgeting progress, transaction history, and insights at a glance.
         </p>
         <div className="flex flex-wrap items-center gap-2 py-5">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="border-green-400 text-xs text-green-700 hover:bg-green-50"
-            onClick={() => {
-              router.push("/transactions");
-            }}
-          >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Add transaction
-          </Button>
           <Button
             type="button"
             variant="outline"

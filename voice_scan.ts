@@ -28,83 +28,70 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 Deno.serve(async (req) => {
+  // Preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders,
     });
   }
+  if (req.method !== "POST") {
+    return jsonError("Method not allowed", null, 405);
+  }
   try {
     const form = await req.formData();
-    const file = form.get("receipt_file");
+    const file = form.get("audio_file");
     const user_id = form.get("user_id");
     const isAuto = form.get("isAuto") === "true";
-    // ---- basic validation ----
     if (!user_id || typeof user_id !== "string" || !user_id.trim()) {
       return jsonError("Missing or invalid 'user_id'");
     }
     if (!file || !(file instanceof File)) {
-      return jsonError("Missing or invalid 'receipt_file'");
+      return jsonError("Missing or invalid 'audio_file'");
     }
-    if (!file.type || !file.type.startsWith("image/")) {
-      return jsonError("Uploaded file is not an image");
+    if (!file.type || !file.type.startsWith("audio/")) {
+      return jsonError("Uploaded file is not an audio recording");
     }
     const finalUserId = user_id.trim();
-    // ---- read file into memory ----
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
-    // ---- upload to storage (receipts bucket) ----
-    const fileExt = file.name.split(".").pop() || "png";
-    const filePath = `user-${finalUserId}/${crypto.randomUUID()}.${fileExt}`;
-    const { data: storageData, error: uploadErr } = await supabase.storage
-      .from("receipts")
-      .upload(filePath, bytes, {
-        contentType: file.type || "image/png",
-      });
-    if (uploadErr) {
-      return jsonError("Failed to upload receipt image", uploadErr.message);
-    }
-    // ---- insert into receipts table ----
-    const { data: receiptRow, error: receiptErr } = await supabase
-      .from("receipts")
-      .insert({
-        user_id: finalUserId,
-        storage_path: storageData.path,
-      })
-      .select()
-      .single();
-    if (receiptErr) {
-      return jsonError("Failed to insert receipts row", receiptErr.message);
-    }
-    // ---- Gemini call ----
-    const base64Receipt = uint8ToBase64(bytes);
+    const base64Audio = uint8ToBase64(bytes);
+    const todayISO = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const model = ai.getGenerativeModel({
       model: "gemini-2.5-flash",
     });
     const prompt = `
-You are analyzing an image to determine if it is a purchase / payment receipt.
+You will receive an audio recording of a person describing a purchase or several purchases.
+Example: "I bought a potato for 2 bucks and fries for 3 bucks at Sprouts."
 
-1. If the image is NOT a receipt (e.g. random photo, selfie, landscape, etc.),
-   respond with ONLY this JSON shape:
-   {
-     "is_receipt": false,
-     "reason": "short explanation of why it's not a receipt"
-   }
+Your job is to:
+1. Decide if the audio describes a financial transaction (buying, paying, etc.).
+2. If yes, extract structured data.
+3. If there is no merchant mentioned, just give the merchant data "Unspecified"
 
-2. If the image IS a receipt, respond with ONLY this JSON shape:
-   {
-     "is_receipt": true,
-     "transaction_items": [{ "item": "string", "price": number }],
-     "merchant": "string",
-     "total_amount": number,
-     "currency": "string",
-     "category": "string",
-     "transaction_date": "YYYY-MM-DD",
-     "notes": "string"
-   }
-   Note: Include taxes and tips as part of an item along with their price in the transactions_items list
+SCHEMA:
 
-STRICT RULES FOR 'category':
-- It MUST be exactly one of the following options:
+If the audio does NOT describe a transaction, respond with ONLY:
+{
+  "is_transaction": false,
+  "reason": "short explanation"
+}
+
+If the audio DOES describe a transaction, respond with ONLY:
+{
+  "is_transaction": true,
+  "transaction_items": [
+    { "item": "string", "price": number }
+  ],
+  "merchant": "string",
+  "total_amount": number,
+  "currency": "string",
+  "category": "string",
+  "transaction_date": "YYYY-MM-DD",
+  "notes": "string"
+}
+
+Rules for category:
+- It MUST be EXACTLY one of:
   "groceries",
   "dining",
   "transport",
@@ -118,17 +105,27 @@ STRICT RULES FOR 'category':
   "travel",
   "income",
   "other"
-- If unsure which category fits, choose "other".
+- If you're unsure, use "other".
 
-Rules:
-- Return ONLY valid JSON. No markdown, no code fences, no comments.
-- Do NOT include extra fields outside the specified schema.
+Rules for currency:
+- Default to "USD" unless the user clearly specifies another currency.
+
+Rules for transaction_date:
+- If the user says a specific date, use that.
+- If no date is mentioned, default to "${todayISO}".
+
+Notes:
+- "notes" can capture anything useful (e.g. "Recorded by voice, multiple items", clarifications, etc.).
+
+IMPORTANT:
+- Return ONLY valid JSON.
+- No markdown, no code fences, no comments.
 `;
     const result = await model.generateContent([
       {
         inlineData: {
-          mimeType: file.type || "image/png",
-          data: base64Receipt,
+          mimeType: file.type,
+          data: base64Audio,
         },
       },
       {
@@ -145,10 +142,10 @@ Rules:
     } catch (err) {
       return jsonError("Failed to parse Gemini output", textOutput);
     }
-    if (!aiData.is_receipt) {
+    if (!aiData.is_transaction) {
       return jsonError(
-        "Uploaded image is not recognized as a receipt",
-        aiData.reason ?? "Gemini classified this image as non-receipt"
+        "Audio is not recognized as a spending description",
+        aiData.reason ?? "Gemini classified this audio as non-transaction"
       );
     }
     if (
@@ -156,24 +153,28 @@ Rules:
       !aiData.merchant ||
       !aiData.transaction_date
     ) {
-      return jsonError("Could not reliably extract receipt details", aiData);
+      return jsonError(
+        "Could not reliably extract transaction details",
+        aiData
+      );
     }
     if (!VALID_CATEGORIES.includes(aiData.category)) {
       aiData.category = "other";
     }
-    // ---- build transaction payload to match DB schema ----
+    // build transaction payload to match DB schema
     const transactionPayload = {
       user_id: finalUserId,
-      receipt_id: receiptRow.id,
+      receipt_id: null,
       transaction_items: JSON.stringify(aiData.transaction_items ?? []),
       merchant: aiData.merchant ?? null,
       total_amount: aiData.total_amount ?? null,
-      currency: aiData.currency ?? null,
+      currency: aiData.currency ?? "USD",
       category: aiData.category,
-      transaction_date: aiData.transaction_date ?? null,
-      notes: aiData.notes ?? null,
+      transaction_date: aiData.transaction_date ?? todayISO,
+      notes: aiData.notes ?? "Recorded via voice transaction",
     };
     if (isAuto) {
+      // auto insert into transactions
       const { data: transaction_row, error: txErr } = await supabase
         .from("transactions")
         .insert(transactionPayload)
@@ -188,6 +189,7 @@ Rules:
         transaction: transaction_row,
       });
     }
+    //  preview-only: user will edit in frontend
     return json({
       success: true,
       mode: "preview",
