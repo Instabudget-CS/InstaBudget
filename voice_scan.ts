@@ -142,14 +142,12 @@ IMPORTANT:
     } catch (err) {
       return jsonError("Failed to parse Gemini output", textOutput);
     }
-    // handle "not a transaction" case
     if (!aiData.is_transaction) {
       return jsonError(
         "Audio is not recognized as a spending description",
         aiData.reason ?? "Gemini classified this audio as non-transaction"
       );
     }
-    // sanity check key fields
     if (
       aiData.total_amount == null ||
       !aiData.merchant ||
@@ -160,11 +158,10 @@ IMPORTANT:
         aiData
       );
     }
-    // enforce category validity
     if (!VALID_CATEGORIES.includes(aiData.category)) {
       aiData.category = "other";
     }
-    // build transaction payload (matches DB)
+    // build transaction payload to match DB schema
     const transactionPayload = {
       user_id: finalUserId,
       receipt_id: null,
@@ -178,7 +175,7 @@ IMPORTANT:
     };
     if (isAuto) {
       // auto insert into transactions
-      const { data: txRow, error: txErr } = await supabase
+      const { data: transaction_row, error: txErr } = await supabase
         .from("transactions")
         .insert(transactionPayload)
         .select()
@@ -189,7 +186,7 @@ IMPORTANT:
       return json({
         success: true,
         mode: "auto",
-        transaction: txRow,
+        transaction: transaction_row,
       });
     }
     //  preview-only: user will edit in frontend
