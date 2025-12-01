@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     if (receiptErr) {
       return jsonError("Failed to insert receipts row", receiptErr.message);
     }
-    // ---- Gemini extraction ----
+    // ---- Gemini call ----
     const base64Receipt = uint8ToBase64(bytes);
     const model = ai.getGenerativeModel({
       model: "gemini-2.5-flash",
@@ -158,11 +158,10 @@ Rules:
     ) {
       return jsonError("Could not reliably extract receipt details", aiData);
     }
-    // ---- enforce category validity ----
     if (!VALID_CATEGORIES.includes(aiData.category)) {
       aiData.category = "other";
     }
-    // ---- build transaction payload ----
+    // ---- build transaction payload to match DB schema ----
     const transactionPayload = {
       user_id: finalUserId,
       receipt_id: receiptRow.id,
@@ -175,7 +174,7 @@ Rules:
       notes: aiData.notes ?? null,
     };
     if (isAuto) {
-      const { data: txRow, error: txErr } = await supabase
+      const { data: transaction_row, error: txErr } = await supabase
         .from("transactions")
         .insert(transactionPayload)
         .select()
@@ -186,7 +185,7 @@ Rules:
       return json({
         success: true,
         mode: "auto",
-        transaction: txRow,
+        transaction: transaction_row,
       });
     }
     return json({
