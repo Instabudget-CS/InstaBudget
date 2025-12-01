@@ -35,10 +35,13 @@ export interface UserDataContextType {
   transactions: Transaction[];
   receipts: Receipt[];
   budgetCategories: BudgetCategory[];
+  aiInsights: string[];
   loading: boolean;
+  insightsLoading: boolean;
   refreshTransactions: () => Promise<void>;
   refreshReceipts: () => Promise<void>;
   refreshBudgetCategories: () => Promise<void>;
+  refreshAIInsights: () => Promise<void>;
   addTransaction: (transaction: Transaction) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;

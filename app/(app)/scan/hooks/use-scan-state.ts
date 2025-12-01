@@ -1,10 +1,11 @@
 import { useState } from "react";
-import type { TransactionFormData } from "../types";
 import type { SavedTransaction } from "../types";
 import { mockExtractedData } from "../constants";
 
 export function useScanState() {
-  const [activeTab, setActiveTab] = useState<"scan" | "manual">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "manual" | "voice">(
+    "scan"
+  );
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [receiptId, setReceiptId] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);

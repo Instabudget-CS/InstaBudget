@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { ReceiptText, PencilLine } from 'lucide-react';
 import {
@@ -7,7 +7,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
+import { formatCurrency } from "@/app/(app)/transactions/utils";
 
 // Matches transactions table
 export interface TransactionRow {
@@ -65,12 +66,12 @@ export function TransactionHistoryCard({
             <p className="text-sm font-semibold text-foreground">
               {formatCurrency(
                 totalSpent,
-                transactions[0]?.currency || fallbackCurrency
+                transactions[0]?.currency || fallbackCurrency || "USD"
               )}
             </p>
             <p className="text-[11px] text-muted-foreground">
               {transactions.length} transaction
-              {transactions.length !== 1 && 's'}
+              {transactions.length !== 1 && "s"}
             </p>
           </div>
         )}
@@ -79,7 +80,7 @@ export function TransactionHistoryCard({
       <CardContent className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            Showing {'  '}
+            Showing {"  "}
             <span className="font-medium text-foreground">
               {rangeLabel?.toLowerCase()}
             </span>
@@ -142,7 +143,7 @@ export function TransactionHistoryCard({
                   {/* Merchant */}
                   <div className="min-w-0 truncate">
                     <p className="truncate text-xs font-medium text-slate-900">
-                      {tx.merchant || 'Unknown merchant'}
+                      {tx.merchant || "Unknown merchant"}
                     </p>
                     <p className="hidden text-[11px] text-slate-500 sm:block">
                       {categoryLabel}
@@ -160,11 +161,11 @@ export function TransactionHistoryCard({
                     <span
                       className={`text-xs font-semibold ${
                         tx.total_amount >= 0
-                          ? 'text-rose-500'
-                          : 'text-emerald-600'
+                          ? "text-rose-500"
+                          : "text-emerald-600"
                       }`}
                     >
-                      {formatCurrency(tx.total_amount, currency)}
+                      {formatCurrency(tx.total_amount, currency || "USD")}
                     </span>
                   </div>
 
@@ -197,25 +198,13 @@ export function TransactionHistoryCard({
 
 // Formats ISO date as "Month DD", or "-" if null/invalid
 function formatDate(value: string | null | undefined): string {
-  if (!value) return '—';
+  if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
+    month: "short",
+    day: "numeric",
   });
-}
-
-// Formats numeric amount into local currency string, defaults to USD
-function formatCurrency(amount: number, currency?: string): string {
-  const safeCurrency = currency || 'USD';
-  if (Number.isNaN(amount)) return `${safeCurrency} 0.00`;
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: safeCurrency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
 }
 
 // Determines the displayed source of transaction

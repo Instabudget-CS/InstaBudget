@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { ScanLine } from 'lucide-react';
+import { useRouter } from "next/navigation";
+import { Plus, ScanLine } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { BudgetProgressCard } from '@/components/ui/budget_progress_card';
-import { TransactionHistoryCard } from '@/components/ui/transaction_history_card';
-import { LLMInsightsCard } from '@/components/ui/llm_insight_card';
+import { Button } from "@/components/ui/button";
+import { BudgetProgressCard } from "@/components/ui/budget_progress_card";
+import { TransactionHistoryCard } from "@/components/ui/transaction_history_card";
+import { LLMInsightsCard } from "@/components/ui/llm_insight_card";
 
 import { useUserData } from '@/lib/user-data-provider';
 import { useAuth } from '@/lib/auth-provider';
@@ -20,14 +20,19 @@ export default function DashboardPage() {
 
   // Get user profile, preferences, and data from react context state
   const { profile } = useAuth();
-  const cycleStart = profile?.cycle_startDate ?? '';
-  const cycleEnd = profile?.cycle_endDate ?? '';
-  const { transactions, budgetCategories, calculateCategorySpent } =
-    useUserData();
+  const cycleStart = profile?.cycle_startDate ?? "";
+  const cycleEnd = profile?.cycle_endDate ?? "";
+  const {
+    transactions,
+    budgetCategories,
+    calculateCategorySpent,
+    aiInsights,
+    insightsLoading,
+  } = useUserData();
   const currency =
-    profile?.preferred_currency ?? transactions[0]?.currency ?? 'USD';
+    profile?.preferred_currency ?? transactions[0]?.currency ?? "USD";
   const cycleLabel =
-    cycleStart && cycleEnd ? `${cycleStart} – ${cycleEnd}` : 'Current cycle';
+    cycleStart && cycleEnd ? `${cycleStart} – ${cycleEnd}` : "Current cycle";
 
   // Calculate budget progress per category to pass into BudgetProgressCard
   const categoryProgress = budgetCategories.map((cat) => {
@@ -36,7 +41,7 @@ export default function DashboardPage() {
       cycleStart || undefined,
       cycleEnd || undefined
     );
-    const limit = parseFloat(String(cat.limit_amount || '0'));
+    const limit = parseFloat(String(cat.limit_amount || "0"));
 
     return {
       id: cat.id,
@@ -75,7 +80,7 @@ export default function DashboardPage() {
             size="lg"
             className="border-dashed border-green-300 text-xs text-green-700 hover:bg-green-50"
             onClick={() => {
-              router.push('/scan');
+              router.push("/scan");
             }}
           >
             <ScanLine className="mr-1.5 h-3.5 w-3.5" />
@@ -99,7 +104,7 @@ export default function DashboardPage() {
           <div
             className="cursor-pointer"
             onClick={() => {
-              router.push('/transactions');
+              router.push("/transactions");
             }}
           >
             <TransactionHistoryCard
@@ -110,10 +115,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div>
-          <LLMInsightsCard
-            weeklySummary={insights.weeklySummary}
-            tip={insights.tip}
-          />
+          <LLMInsightsCard insights={aiInsights} loading={insightsLoading} />
         </div>
       </div>
     </div>

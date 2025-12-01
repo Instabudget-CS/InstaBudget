@@ -5,10 +5,10 @@ import { useAuth } from "@/lib/auth-provider";
 import { useTransactions } from "./user-data-provider/hooks/use-transactions";
 import { useReceipts } from "./user-data-provider/hooks/use-receipts";
 import { useBudgetCategories } from "./user-data-provider/hooks/use-budget-categories";
+import { useAIInsights } from "./user-data-provider/hooks/use-ai-insights";
 import { calculateCategorySpent } from "./user-data-provider/utils/calculate-category-spent";
 import type { UserDataContextType } from "./user-data-provider/types";
 
-// Re-export types for backward compatibility
 export type {
   Transaction,
   Receipt,
@@ -54,6 +54,22 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     transactions,
   });
 
+  // const {
+  //   insights: aiInsights,
+  //   loading: insightsLoading,
+  //   refreshInsights: refreshAIInsights,
+  // } = useAIInsights({ userId: user?.id ?? null });
+
+  const {
+    insights: aiInsights,
+    loading: insightsLoading,
+    refreshInsights: refreshAIInsights,
+  } = {
+    insights: {},
+    loading: true,
+    refreshInsights: () => console.log("refreshInsights"),
+  };
+
   useEffect(() => {
     const loadData = async () => {
       if (user) {
@@ -89,10 +105,13 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     transactions,
     receipts,
     budgetCategories,
+    aiInsights,
     loading,
+    insightsLoading,
     refreshTransactions,
     refreshReceipts,
     refreshBudgetCategories,
+    refreshAIInsights,
     addTransaction,
     updateTransaction,
     deleteTransaction,

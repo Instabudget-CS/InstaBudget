@@ -5,7 +5,6 @@ import { transformTransactionToFormData } from "../utils";
 import type { EdgeFunctionResponse } from "../types";
 import type { SavedTransaction } from "../types";
 import type { TransactionFormData } from "../types";
-import { mockExtractedData } from "../constants";
 
 interface UseEdgeFunctionProps {
   onAutoSaveSuccess: (transaction: SavedTransaction) => void;

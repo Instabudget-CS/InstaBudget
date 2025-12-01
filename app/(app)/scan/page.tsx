@@ -5,16 +5,20 @@ import { toast } from "@/hooks/use-toast";
 import { useUserData } from "@/lib/user-data-provider";
 import { useScanState } from "./hooks/use-scan-state";
 import { useEdgeFunction } from "./hooks/use-edge-function";
+import { useVoiceRecording } from "./hooks/use-voice-recording";
 import { useTransactionSave } from "./hooks/use-transaction-save";
 import { ScanHeader } from "./components/scan-header";
 import { ScanTabs } from "./components/scan-tabs";
 import { ScanTabContent } from "./components/scan-tab-content";
+import { VoiceTabContent } from "./components/voice-tab-content";
 import { ManualTabContent } from "./components/manual-tab-content";
+import { useRouter } from "next/navigation";
 import type { TransactionFormData } from "./types";
 
 export default function ScanPage() {
   const { user, profile } = useAuth();
   const { addTransaction } = useUserData();
+  const router = useRouter();
 
   const {
     activeTab,
@@ -65,6 +69,35 @@ export default function ScanPage() {
     onError: () => {
       setIsExtracting(false);
       setReceiptImage(null);
+    },
+  });
+
+  const {
+    isRecording,
+    recordingTime,
+    startRecording,
+    stopRecording,
+    sendRecording,
+  } = useVoiceRecording({
+    onAutoSaveSuccess: (transaction) => {
+      addTransaction({
+        ...transaction,
+        created_at: transaction.created_at || new Date().toISOString(),
+      });
+      setSavedTransaction(transaction);
+      setIsExtracting(false);
+      toast({
+        title: "Success",
+        description: "Transaction saved automatically",
+      });
+    },
+    onPreviewSuccess: (data) => {
+      setExtractedData(data);
+      setIsExtracting(false);
+      setIsEditing(true);
+    },
+    onError: () => {
+      setIsExtracting(false);
     },
   });
 
@@ -137,12 +170,45 @@ export default function ScanPage() {
     setIsSaving(false);
   };
 
+  const handleSaveVoiceTransaction = async (formData: TransactionFormData) => {
+    if (!user || !profile) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save transactions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    await saveTransaction(formData, user.id, profile.preferred_currency);
+    setIsSaving(false);
+  };
+
+  const handleSendVoiceRecording = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to record transactions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    await sendRecording(user.id, isAutoSave);
+  };
+
   const handleCancel = () => {
     resetScanState();
   };
 
   const handleScanAnother = () => {
     resetScanState();
+  };
+
+  const handleViewTransactions = () => {
+    router.push("/transactions");
   };
 
   return (
@@ -166,6 +232,26 @@ export default function ScanPage() {
             onCancel={handleCancel}
             onSave={handleSaveScanTransaction}
             onScanAnother={handleScanAnother}
+          />
+        }
+        voiceContent={
+          <VoiceTabContent
+            isRecording={isRecording}
+            recordingTime={recordingTime}
+            isProcessing={isExtracting}
+            isEditing={isEditing}
+            isSaving={isSaving}
+            isAutoSave={isAutoSave}
+            savedTransaction={savedTransaction}
+            extractedData={extractedData}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onAutoSaveChange={setIsAutoSave}
+            onSendRecording={handleSendVoiceRecording}
+            onSave={handleSaveVoiceTransaction}
+            onCancel={handleCancel}
+            onViewTransactions={handleViewTransactions}
+            onRecordAnother={handleScanAnother}
           />
         }
         manualContent={

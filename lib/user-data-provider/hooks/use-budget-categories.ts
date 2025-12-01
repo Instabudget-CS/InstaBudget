@@ -20,6 +20,36 @@ export function useBudgetCategories({
     []
   );
 
+  // Helper function to update spent_amount in database for all categories
+  const updateSpentAmountsInDB = useCallback(
+    async (categories: BudgetCategory[]) => {
+      if (!user || categories.length === 0) return;
+
+      try {
+        // Batch update all categories' spent_amount
+        const updates = categories.map((category) => ({
+          id: category.id,
+          spent_amount: category.spent_amount,
+        }));
+
+        // Update each category individually (Supabase doesn't support batch updates easily)
+        await Promise.all(
+          updates.map((update) =>
+            supabase
+              .from("budget_categories")
+              .update({ spent_amount: update.spent_amount })
+              .eq("id", update.id)
+              .eq("user_id", user.id)
+          )
+        );
+      } catch (error) {
+        console.error("Error updating spent_amount in database:", error);
+        // Don't throw - this is a background update, shouldn't break the UI
+      }
+    },
+    [user]
+  );
+
   const fetchBudgetCategories = useCallback(async () => {
     if (!user) {
       setBudgetCategories([]);
@@ -54,25 +84,37 @@ export function useBudgetCategories({
       });
 
       setBudgetCategories(categoriesWithSpent);
+
+      // Update spent_amount in database after calculating
+      await updateSpentAmountsInDB(categoriesWithSpent);
     } catch (error) {
       console.error("Error fetching budget categories:", error);
     }
-  }, [user, transactions, profile?.cycle_startDate, profile?.cycle_endDate]);
+  }, [
+    user,
+    transactions,
+    profile?.cycle_startDate,
+    profile?.cycle_endDate,
+    updateSpentAmountsInDB,
+  ]);
 
   // Recalculate spent amounts when transactions or profile cycle dates change
   useEffect(() => {
     if (user && budgetCategories.length > 0 && transactions.length > 0) {
-      setBudgetCategories((prev) =>
-        prev.map((category) => ({
-          ...category,
-          spent_amount: calculateCategorySpent(
-            category.category_name,
-            transactions,
-            profile?.cycle_startDate,
-            profile?.cycle_endDate
-          ),
-        }))
-      );
+      const updatedCategories = budgetCategories.map((category) => ({
+        ...category,
+        spent_amount: calculateCategorySpent(
+          category.category_name,
+          transactions,
+          profile?.cycle_startDate,
+          profile?.cycle_endDate
+        ),
+      }));
+
+      setBudgetCategories(updatedCategories);
+
+      // Update spent_amount in database after recalculating
+      updateSpentAmountsInDB(updatedCategories);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, profile?.cycle_startDate, profile?.cycle_endDate]);
@@ -115,14 +157,19 @@ export function useBudgetCategories({
             profile?.cycle_startDate,
             profile?.cycle_endDate
           );
-          setBudgetCategories((prev) => [
-            ...prev,
-            {
-              ...data,
-              limit_amount: Number(data.limit_amount) || 0,
-              spent_amount: spent,
-            },
-          ]);
+          const newCategory = {
+            ...data,
+            limit_amount: Number(data.limit_amount) || 0,
+            spent_amount: spent,
+          };
+          setBudgetCategories((prev) => [...prev, newCategory]);
+
+          // Update spent_amount in database for the new category
+          await supabase
+            .from("budget_categories")
+            .update({ spent_amount: spent })
+            .eq("id", data.id)
+            .eq("user_id", user.id);
         }
       } catch (error) {
         console.error("Error adding budget category:", error);
@@ -172,18 +219,21 @@ export function useBudgetCategories({
             profile?.cycle_startDate,
             profile?.cycle_endDate
           );
+          const updatedCategory = {
+            ...data,
+            limit_amount: Number(data.limit_amount) || 0,
+            spent_amount: spent,
+          };
           setBudgetCategories((prev) =>
-            prev.map((cat) =>
-              cat.id === id
-                ? {
-                    ...cat,
-                    ...data,
-                    limit_amount: Number(data.limit_amount) || 0,
-                    spent_amount: spent,
-                  }
-                : cat
-            )
+            prev.map((cat) => (cat.id === id ? updatedCategory : cat))
           );
+
+          // Update spent_amount in database for the updated category
+          await supabase
+            .from("budget_categories")
+            .update({ spent_amount: spent })
+            .eq("id", id)
+            .eq("user_id", user.id);
         }
       } catch (error) {
         console.error("Error updating budget category:", error);
