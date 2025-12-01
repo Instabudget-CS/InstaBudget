@@ -29,7 +29,7 @@ export interface TransactionFormData {
   items: TransactionItem[];
 }
 
-export type TabMode = "scan" | "manual";
+export type TabMode = "scan" | "manual" | "voice";
 
 export interface SavedTransaction extends Omit<Transaction, "created_at"> {
   created_at?: string;

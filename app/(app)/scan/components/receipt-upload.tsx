@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 interface ReceiptUploadProps {
@@ -54,25 +55,20 @@ export function ReceiptUpload({
             </Button>
           </div>
         </div>
-        <div className="flex items-center space-x-2 rounded-md border p-3">
-          <input
-            type="checkbox"
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="auto-save">Auto-save transaction</Label>
+            <p className="text-xs text-muted-foreground">
+              {isAutoSave
+                ? "Automatically save without preview"
+                : "Review and edit before saving"}
+            </p>
+          </div>
+          <Switch
             id="auto-save"
             checked={isAutoSave}
-            onChange={(e) => onAutoSaveChange(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            onCheckedChange={onAutoSaveChange}
           />
-          <Label
-            htmlFor="auto-save"
-            className="text-sm font-normal cursor-pointer"
-          >
-            Auto-save transaction
-          </Label>
-          <p className="text-xs text-muted-foreground ml-auto">
-            {isAutoSave
-              ? "Transaction will be saved automatically"
-              : "Review and edit before saving"}
-          </p>
         </div>
       </CardContent>
     </Card>

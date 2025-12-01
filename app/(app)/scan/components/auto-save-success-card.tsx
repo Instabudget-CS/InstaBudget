@@ -13,14 +13,19 @@ import { Button } from "@/components/ui/button";
 import type { SavedTransaction } from "../types";
 
 interface AutoSaveSuccessCardProps {
-  transaction: SavedTransaction;
+  transaction: SavedTransaction | null;
+  onViewTransactions?: () => void;
   onScanAnother: () => void;
 }
 
 export function AutoSaveSuccessCard({
   transaction,
+  onViewTransactions,
   onScanAnother,
 }: AutoSaveSuccessCardProps) {
+  if (!transaction) {
+    return null;
+  }
   const router = useRouter();
 
   return (
@@ -43,7 +48,7 @@ export function AutoSaveSuccessCard({
               Merchant
             </p>
             <p className="text-base font-semibold">
-              {transaction.merchant || "N/A"}
+              {transaction?.merchant || "N/A"}
             </p>
           </div>
           <div>
@@ -51,8 +56,8 @@ export function AutoSaveSuccessCard({
               Total Amount
             </p>
             <p className="text-base font-semibold">
-              {transaction.currency || "$"}
-              {transaction.total_amount?.toFixed(2) || "0.00"}
+              {transaction?.currency || "$"}
+              {transaction?.total_amount?.toFixed(2) || "0.00"}
             </p>
           </div>
           <div>
@@ -60,7 +65,7 @@ export function AutoSaveSuccessCard({
               Category
             </p>
             <p className="text-base font-semibold capitalize">
-              {transaction.category || "other"}
+              {transaction?.category || "other"}
             </p>
           </div>
           <div>
@@ -74,7 +79,7 @@ export function AutoSaveSuccessCard({
         </div>
         <div className="flex gap-3 pt-4">
           <Button
-            onClick={() => router.push("/transactions")}
+            onClick={onViewTransactions || (() => router.push("/transactions"))}
             className="flex-1"
           >
             View Transactions
