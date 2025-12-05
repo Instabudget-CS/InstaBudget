@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ProfileBudgetConfig } from "@/components/ui/budget_cycle_card";
+import { parseLocalDate } from "@/lib/date-utils";
 
 interface BudgetSnapshotCardProps {
   profileBudget: ProfileBudgetConfig;
@@ -42,13 +43,13 @@ export function BudgetSnapshotCard({
 
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Cycle start date:</span>{" "}
-          {new Date(cycle_startDate).toLocaleDateString()}
+          {parseLocalDate(cycle_startDate).toLocaleDateString()}
         </p>
 
         {cycle_endDate && (
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Cycle end date:</span>{" "}
-            {new Date(cycle_endDate).toLocaleDateString()}
+            {parseLocalDate(cycle_endDate).toLocaleDateString()}
           </p>
         )}
 

@@ -108,6 +108,7 @@ export function useVoiceRecording({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.log(errorData);
           throw new Error(
             errorData.error || `Failed to process audio: ${response.statusText}`
           );

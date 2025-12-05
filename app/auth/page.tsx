@@ -24,10 +24,6 @@ export default function AuthPage() {
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
 
-  // Redirect logic:
-  // - If user exists and profile exists → redirect to /profile
-  // - If user exists but no profile → redirect to /auth/setup
-  // - If no user → stay on /auth (no redirect)
   useEffect(() => {
     if (authLoading) return;
 
@@ -70,7 +66,6 @@ export default function AuthPage() {
     setEmail("");
   };
 
-  // Show loading state while checking auth
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-background">

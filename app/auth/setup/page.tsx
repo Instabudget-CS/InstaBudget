@@ -37,7 +37,6 @@ export default function SetupPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // Guard: require auth but not profile (since they're setting it up)
   const {
     user,
     profile,
@@ -48,7 +47,6 @@ export default function SetupPage() {
     requireProfile: false,
   });
 
-  // Redirect users who already have a profile
   useEffect(() => {
     if (!authLoading && user && profile) {
       router.push("/profile");
@@ -93,7 +91,6 @@ export default function SetupPage() {
         return;
       }
 
-      // Call Edge Function to upsert profile
       const { data, error } = await supabase.functions.invoke(
         "upsert-profile",
         {
@@ -123,7 +120,6 @@ export default function SetupPage() {
     }
   };
 
-  // Show loading state while checking auth
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-background">

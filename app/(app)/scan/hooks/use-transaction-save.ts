@@ -22,7 +22,6 @@ export function useTransactionSave({
     currency: string,
     receiptId?: string | null
   ): Promise<Transaction | null> => {
-    // Validate form
     const validationError = validateTransactionForm(formData);
     if (validationError) {
       toast({

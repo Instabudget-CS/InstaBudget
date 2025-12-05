@@ -1,6 +1,6 @@
 "use client";
 
-import { ReceiptText, PencilLine } from 'lucide-react';
+import { ReceiptText, PencilLine } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency } from "@/app/(app)/transactions/utils";
 
-// Matches transactions table
+// matches transactions table
 export interface TransactionRow {
   id: string;
   user_id: string;
@@ -58,7 +58,6 @@ export function TransactionHistoryCard({
         </div>
 
         {hasTransactions && (
-          // Provides overview
           <div className="text-right">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Total Recorded
@@ -87,7 +86,6 @@ export function TransactionHistoryCard({
           </p>
         </div>
 
-        {/* Table header */}
         <div className="mt-1 hidden grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] items-center gap-3 rounded-lg bg-slate-50 px-4 py-2 text-[11px] font-medium text-muted-foreground sm:grid">
           <span>Date</span>
           <span>Merchant</span>
@@ -97,7 +95,6 @@ export function TransactionHistoryCard({
           <span className="text-right">Notes / Status</span>
         </div>
 
-        {/* Display "No Transactions Yet" if no transactions, else map transactions into component */}
         <div className="max-h-80 space-y-1 overflow-y-auto rounded-lg border border-slate-100 bg-white">
           {!hasTransactions && (
             <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
@@ -116,7 +113,7 @@ export function TransactionHistoryCard({
               const dateLabel = formatDate(
                 tx.transaction_date || tx.created_at
               );
-              const categoryLabel = tx.category || 'Uncategorized';
+              const categoryLabel = tx.category || "Uncategorized";
               const { label: sourceLabel, icon: sourceIcon } =
                 getTransactionSourceInfo(tx);
 
@@ -130,7 +127,6 @@ export function TransactionHistoryCard({
                   key={tx.id}
                   className="grid grid-cols-1 gap-1 border-t border-slate-100 px-4 py-3 text-xs text-slate-700 first:border-t-0 sm:grid-cols-[0.9fr_1.4fr_1fr_0.7fr_0.9fr_0.9fr] sm:items-center sm:gap-3"
                 >
-                  {/* Date */}
                   <div className="flex items-center justify-between sm:block">
                     <span className="font-medium text-slate-900 sm:text-xs">
                       {dateLabel}
@@ -140,7 +136,6 @@ export function TransactionHistoryCard({
                     </span>
                   </div>
 
-                  {/* Merchant */}
                   <div className="min-w-0 truncate">
                     <p className="truncate text-xs font-medium text-slate-900">
                       {tx.merchant || "Unknown merchant"}
@@ -156,7 +151,6 @@ export function TransactionHistoryCard({
                     </span>
                   </div>
 
-                  {/* Amount */}
                   <div className="text-right">
                     <span
                       className={`text-xs font-semibold ${
@@ -169,13 +163,11 @@ export function TransactionHistoryCard({
                     </span>
                   </div>
 
-                  {/* Source */}
                   <div className="flex items-center gap-1 text-[11px] text-slate-500 min-w-0 ">
                     {sourceIcon}
                     <span className="truncate">{sourceLabel}</span>
                   </div>
 
-                  {/* Notes */}
                   <div className="text-right min-w-0 ">
                     {tx.notes ? (
                       <p className="truncate text-[11px] text-slate-500">
@@ -196,28 +188,28 @@ export function TransactionHistoryCard({
   );
 }
 
-// Formats ISO date as "Month DD", or "-" if null/invalid
+import { parseLocalDateIfPossible } from "@/lib/date-utils";
+
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString(undefined, {
+  const date = parseLocalDateIfPossible(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
   });
 }
 
-// Determines the displayed source of transaction
 function getTransactionSourceInfo(tx: TransactionRow) {
   if (tx.receipt_id) {
     return {
-      label: 'Receipt · LLM',
+      label: "Receipt · LLM",
       icon: <ReceiptText className="h-3.5 w-3.5 text-blue-400" />,
     };
   }
 
   return {
-    label: 'Manual entry',
+    label: "Manual entry",
     icon: <PencilLine className="h-3.5 w-3.5 text-amber-400" />,
   };
 }

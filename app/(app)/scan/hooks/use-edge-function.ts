@@ -55,11 +55,9 @@ export function useEdgeFunction({
       }
 
       if (result.mode === "auto" && result.transaction) {
-        // Auto-save mode: transaction was already saved
         const savedTx = result.transaction as SavedTransaction;
         onAutoSaveSuccess(savedTx);
       } else if (result.mode === "preview" && result.transaction) {
-        // Preview mode: show edit form
         const transformedData = transformTransactionToFormData(
           result.transaction
         );

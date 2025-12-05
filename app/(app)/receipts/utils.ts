@@ -1,9 +1,13 @@
+import { parseLocalDateIfPossible } from "@/lib/date-utils";
+
 export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString();
+  const date = parseLocalDateIfPossible(dateString);
+  return date.toLocaleDateString();
 };
 
 export const formatDateLong = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString("en-US", {
+  const date = parseLocalDateIfPossible(dateString);
+  return date.toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -12,7 +16,8 @@ export const formatDateLong = (dateString: string): string => {
 };
 
 export const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString("en-US", {
+  const date = parseLocalDateIfPossible(dateString);
+  return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",

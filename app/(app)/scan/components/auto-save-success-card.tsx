@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { SavedTransaction } from "../types";
+import { parseLocalDate } from "@/lib/date-utils";
 
 interface AutoSaveSuccessCardProps {
   transaction: SavedTransaction | null;
@@ -23,10 +24,11 @@ export function AutoSaveSuccessCard({
   onViewTransactions,
   onScanAnother,
 }: AutoSaveSuccessCardProps) {
+  const router = useRouter();
+
   if (!transaction) {
     return null;
   }
-  const router = useRouter();
 
   return (
     <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900">
@@ -72,7 +74,9 @@ export function AutoSaveSuccessCard({
             <p className="text-sm font-medium text-muted-foreground">Date</p>
             <p className="text-base font-semibold">
               {transaction.transaction_date
-                ? new Date(transaction.transaction_date).toLocaleDateString()
+                ? parseLocalDate(
+                    transaction.transaction_date
+                  ).toLocaleDateString()
                 : "N/A"}
             </p>
           </div>

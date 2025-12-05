@@ -32,10 +32,8 @@ export function useBudgetSave({
 
     setIsSaving(true);
     try {
-      // Save categories first
       await saveCategories();
 
-      // Update profile budget settings
       await updateProfile({
         cycle_duration: "monthly",
         cycle_startDate: profileBudget.cycle_startDate,

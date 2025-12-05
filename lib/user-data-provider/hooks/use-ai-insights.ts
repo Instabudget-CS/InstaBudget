@@ -74,7 +74,6 @@ export function useAIInsights({ userId }: UseAIInsightsProps) {
     } catch (error) {
       console.error("Error fetching AI insights:", error);
       setInsights([]);
-      // Don't throw - this is a background update, shouldn't break the UI
     } finally {
       setLoading(false);
     }

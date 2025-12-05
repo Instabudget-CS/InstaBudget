@@ -30,7 +30,7 @@ export function useBudgetCategories({
   refreshBudgetCategories,
   userId,
 }: UseBudgetCategoriesProps) {
-  // Convert budget categories to BudgetCategoryRow format
+  
   const categories: BudgetCategoryRow[] = useMemo(() => {
     return budgetCategories.map((cat) => ({
       id: cat.id,
@@ -47,7 +47,6 @@ export function useBudgetCategories({
     []
   );
 
-  // Sync local categories with budgetCategories from provider
   useEffect(() => {
     setLocalCategories(categories);
   }, [categories]);
@@ -62,7 +61,6 @@ export function useBudgetCategories({
     const existingIds = new Set(categories.map((c) => c.id));
     const newIds = new Set(localCategories.map((c) => c.id));
 
-    // Deleted categories (only real DB IDs, not temp ones)
     const deleted = categories.filter(
       (c) => !newIds.has(c.id) && !c.id.startsWith("cat-")
     );
@@ -79,9 +77,8 @@ export function useBudgetCategories({
       }
     }
 
-    // Added or updated categories
     for (const newCat of localCategories) {
-      // Skip empty categories
+
       if (!newCat.category_name.trim() || !newCat.limit_amount) {
         continue;
       }
@@ -90,7 +87,7 @@ export function useBudgetCategories({
         newCat.id.startsWith("cat-") || !existingIds.has(newCat.id);
 
       if (isNewCategory) {
-        // New category
+        
         try {
           await addBudgetCategory({
             user_id: userId,
@@ -110,7 +107,7 @@ export function useBudgetCategories({
           });
         }
       } else {
-        // Updated category - check if anything changed
+        
         const oldCat = categories.find((c) => c.id === newCat.id);
         if (
           oldCat &&
@@ -134,7 +131,7 @@ export function useBudgetCategories({
       }
     }
 
-    // Refresh to get updated data
+    
     await refreshBudgetCategories();
   };
 

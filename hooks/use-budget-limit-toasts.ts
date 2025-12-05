@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export type BudgetCategoryProgress = {
   id: string | number;
@@ -23,33 +23,27 @@ export function useBudgetLimitToasts({
 }: UseBudgetLimitToastsParams) {
   const { toast } = useToast();
 
-  // Check if there are defined categories with limits
   const hasData = categories.length > 0 && totalLimit > 0;
 
-  // Get all categories that exceeded limit
   const exceededCategories = hasData
     ? categories.filter((c) => c.limit > 0 && c.spent >= c.limit)
     : [];
 
-  // Get all categories that are approaching limit (defined as more than 70%)
   const approachingCategories = hasData
     ? categories.filter(
         (c) => c.limit > 0 && c.spent / c.limit >= 0.7 && c.spent < c.limit
       )
     : [];
 
-  // Store and format all the category names
   const exceededNames = exceededCategories.map((c) => c.name);
   const approachingNames = approachingCategories.map((c) => c.name);
-  const exceededNamesText = exceededNames.join(', ');
-  const approachingNamesText = approachingNames.join(', ');
+  const exceededNamesText = exceededNames.join(", ");
+  const approachingNamesText = approachingNames.join(", ");
 
-  // Calculate if total budget is approaching or exceeded
   const totalRatio = hasData ? totalSpent / totalLimit : 0;
   const totalApproaching = hasData && totalRatio >= 0.7 && totalRatio < 1;
   const totalExceeded = hasData && totalRatio >= 1;
 
-  // Determine which toast to show
   const shouldShowExceeded =
     hasData && (totalExceeded || exceededCategories.length > 0);
 
@@ -58,14 +52,13 @@ export function useBudgetLimitToasts({
     !shouldShowExceeded &&
     (totalApproaching || approachingCategories.length > 0);
 
-  // Format toast descriptions
   const exceededDescription = (() => {
-    if (!hasData) return '';
+    if (!hasData) return "";
 
     const parts: string[] = [];
 
     if (totalExceeded) {
-      parts.push('Your total budget is at or above 100%.');
+      parts.push("Your total budget is at or above 100%.");
     }
 
     if (exceededNames.length > 0) {
@@ -77,19 +70,19 @@ export function useBudgetLimitToasts({
     }
 
     if (parts.length === 0) {
-      return 'You have exceeded your limit of at least one budget.';
+      return "You have exceeded your limit of at least one budget.";
     }
 
-    return parts.join(' ');
+    return parts.join(" ");
   })();
 
   const approachingDescription = (() => {
-    if (!hasData) return '';
+    if (!hasData) return "";
 
     const parts: string[] = [];
 
     if (totalApproaching) {
-      parts.push('Your total budget is between approaching its limit.');
+      parts.push("Your total budget is between approaching its limit.");
     }
 
     if (approachingNames.length > 0) {
@@ -99,26 +92,25 @@ export function useBudgetLimitToasts({
     }
 
     if (parts.length === 0) {
-      return 'You are appraoching the limit of at least one budget.';
+      return "You are appraoching the limit of at least one budget.";
     }
 
-    return parts.join(' ');
+    return parts.join(" ");
   })();
 
-  // Return toast component
   useEffect(() => {
     if (!hasData) return;
 
     if (shouldShowExceeded) {
       toast({
-        variant: 'destructive',
-        title: 'Budget limit exceeded!',
+        variant: "destructive",
+        title: "Budget limit exceeded!",
         description: exceededDescription,
       });
     } else if (shouldShowApproaching) {
       toast({
-        variant: 'warning',
-        title: 'You’re nearing your budget limit',
+        variant: "warning",
+        title: "You’re nearing your budget limit",
         description: approachingDescription,
       });
     }

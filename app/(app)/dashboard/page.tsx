@@ -8,17 +8,13 @@ import { BudgetProgressCard } from "@/components/ui/budget_progress_card";
 import { TransactionHistoryCard } from "@/components/ui/transaction_history_card";
 import { LLMInsightsCard } from "@/components/ui/llm_insight_card";
 
-import { useUserData } from '@/lib/user-data-provider';
-import { useAuth } from '@/lib/auth-provider';
-import { useBudgetLimitToasts } from '@/hooks/use-budget-limit-toasts';
-
-const todayISO = new Date().toISOString().split('T')[0];
+import { useUserData } from "@/lib/user-data-provider";
+import { useAuth } from "@/lib/auth-provider";
+import { useBudgetLimitToasts } from "@/hooks/use-budget-limit-toasts";
 
 export default function DashboardPage() {
-  // For page routing
   const router = useRouter();
 
-  // Get user profile, preferences, and data from react context state
   const { profile } = useAuth();
   const cycleStart = profile?.cycle_startDate ?? "";
   const cycleEnd = profile?.cycle_endDate ?? "";
@@ -34,7 +30,6 @@ export default function DashboardPage() {
   const cycleLabel =
     cycleStart && cycleEnd ? `${cycleStart} – ${cycleEnd}` : "Current cycle";
 
-  // Calculate budget progress per category to pass into BudgetProgressCard
   const categoryProgress = budgetCategories.map((cat) => {
     const spent = calculateCategorySpent(
       cat.category_name,
@@ -52,13 +47,6 @@ export default function DashboardPage() {
   });
   const totalLimit = categoryProgress.reduce((sum, c) => sum + c.limit, 0);
   const totalSpent = categoryProgress.reduce((sum, c) => sum + c.spent, 0);
-
-  // TODO:
-  // Replace with real insights from backend LLM
-  const insights = {
-    weeklySummary: 'Placeholder for weekly sum',
-    tip: 'Placeholder for budgeting tip',
-  };
 
   useBudgetLimitToasts({
     categories: categoryProgress,

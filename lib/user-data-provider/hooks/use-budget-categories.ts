@@ -20,19 +20,16 @@ export function useBudgetCategories({
     []
   );
 
-  // Helper function to update spent_amount in database for all categories
   const updateSpentAmountsInDB = useCallback(
     async (categories: BudgetCategory[]) => {
       if (!user || categories.length === 0) return;
 
       try {
-        // Batch update all categories' spent_amount
         const updates = categories.map((category) => ({
           id: category.id,
           spent_amount: category.spent_amount,
         }));
 
-        // Update each category individually (Supabase doesn't support batch updates easily)
         await Promise.all(
           updates.map((update) =>
             supabase
@@ -44,7 +41,6 @@ export function useBudgetCategories({
         );
       } catch (error) {
         console.error("Error updating spent_amount in database:", error);
-        // Don't throw - this is a background update, shouldn't break the UI
       }
     },
     [user]
@@ -68,7 +64,6 @@ export function useBudgetCategories({
         return;
       }
 
-      // Calculate spent_amount for each category from transactions
       const categoriesWithSpent = (data || []).map((category) => {
         const spent = calculateCategorySpent(
           category.category_name,
@@ -85,7 +80,6 @@ export function useBudgetCategories({
 
       setBudgetCategories(categoriesWithSpent);
 
-      // Update spent_amount in database after calculating
       await updateSpentAmountsInDB(categoriesWithSpent);
     } catch (error) {
       console.error("Error fetching budget categories:", error);
@@ -98,7 +92,6 @@ export function useBudgetCategories({
     updateSpentAmountsInDB,
   ]);
 
-  // Recalculate spent amounts when transactions or profile cycle dates change
   useEffect(() => {
     if (user && budgetCategories.length > 0 && transactions.length > 0) {
       const updatedCategories = budgetCategories.map((category) => ({
@@ -113,7 +106,6 @@ export function useBudgetCategories({
 
       setBudgetCategories(updatedCategories);
 
-      // Update spent_amount in database after recalculating
       updateSpentAmountsInDB(updatedCategories);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,7 +156,6 @@ export function useBudgetCategories({
           };
           setBudgetCategories((prev) => [...prev, newCategory]);
 
-          // Update spent_amount in database for the new category
           await supabase
             .from("budget_categories")
             .update({ spent_amount: spent })
@@ -228,7 +219,6 @@ export function useBudgetCategories({
             prev.map((cat) => (cat.id === id ? updatedCategory : cat))
           );
 
-          // Update spent_amount in database for the updated category
           await supabase
             .from("budget_categories")
             .update({ spent_amount: spent })

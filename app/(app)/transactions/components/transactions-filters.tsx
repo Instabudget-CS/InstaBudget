@@ -1,25 +1,25 @@
-import { Search } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Search } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { Category } from '@/app/(app)/scan/types';
-import type { SortOption } from '../types';
-import { CATEGORY_LABELS } from '../constants';
+} from "@/components/ui/select";
+import type { Category } from "@/app/(app)/scan/types";
+import type { SortOption } from "../types";
+import { CATEGORY_LABELS } from "../constants";
 
 interface TransactionsFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
-  filterCategory: Category | 'all';
-  onCategoryChange: (value: Category | 'all') => void;
+  filterCategory: Category | "all";
+  onCategoryChange: (value: Category | "all") => void;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
 }
@@ -41,7 +41,6 @@ export function TransactionsFilters({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-4">
-          {/* Search */}
           <div className="relative w-full md:col-span-2">
             <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -51,7 +50,6 @@ export function TransactionsFilters({
             />
           </div>
 
-          {/* Sort */}
           <div className="w-full md:col-span-1">
             <Select
               value={sortBy}
@@ -73,12 +71,11 @@ export function TransactionsFilters({
             </Select>
           </div>
 
-          {/* Category Filter */}
           <div className="w-full md:col-span-1">
             <Select
               value={filterCategory}
               onValueChange={(value) =>
-                onCategoryChange(value as Category | 'all')
+                onCategoryChange(value as Category | "all")
               }
             >
               <SelectTrigger className="w-full">
@@ -96,7 +93,6 @@ export function TransactionsFilters({
           </div>
         </div>
 
-        {/* Clear Filters */}
         {hasActiveFilters && (
           <Button variant="outline" size="sm" onClick={onClearFilters}>
             Clear Filters

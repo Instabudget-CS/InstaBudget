@@ -9,7 +9,6 @@ interface UseBudgetCalculationsProps {
 export function useBudgetCalculations({
   localCategories,
 }: UseBudgetCalculationsProps): BudgetCalculations {
-  // Calculate progress for each category
   const categoryProgress = useMemo(() => {
     return localCategories
       .filter((cat) => cat.category_name.trim() && cat.limit_amount)
@@ -21,7 +20,7 @@ export function useBudgetCalculations({
       }));
   }, [localCategories]);
 
-  // Calculate the combined progress for all categories
+  // calculates the combined progress for all categories
   const totalLimit = useMemo(
     () => categoryProgress.reduce((sum, c) => sum + c.limit, 0),
     [categoryProgress]

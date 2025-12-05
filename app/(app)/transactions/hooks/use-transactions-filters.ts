@@ -17,19 +17,16 @@ export function useTransactionsFilters({
   const filteredAndSortedTransactions = useMemo(() => {
     let filtered = [...transactions];
 
-    // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter((t) =>
         (t.merchant || "").toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Apply category filter
     if (filterCategory !== "all") {
       filtered = filtered.filter((t) => t.category === filterCategory);
     }
 
-    // Apply sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "date-desc":

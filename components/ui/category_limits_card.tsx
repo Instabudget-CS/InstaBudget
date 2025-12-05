@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Spending category enum values
 export const SPENDING_CATEGORIES = [
   "groceries",
   "dining",
@@ -80,7 +79,6 @@ export function CategoryLimitsCard({
     onChange([
       ...categories,
       {
-        // Matches DB for budget_categories table
         id,
         user_id: userId,
         category_name: "",
@@ -124,7 +122,6 @@ export function CategoryLimitsCard({
                 key={cat.id}
                 className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 sm:grid-cols-[2fr_1fr_auto]"
               >
-                {/* category_name */}
                 <div className="space-y-1">
                   <Label className="sm:hidden">Category Name</Label>
                   <Select
@@ -138,7 +135,6 @@ export function CategoryLimitsCard({
                     </SelectTrigger>
                     <SelectContent>
                       {SPENDING_CATEGORIES.map((category) => {
-                        // Check if this category is already used by another category
                         const isUsed = categories.some(
                           (c) =>
                             c.id !== cat.id &&
@@ -162,7 +158,6 @@ export function CategoryLimitsCard({
                   </Select>
                 </div>
 
-                {/* limit_amount */}
                 <div className="space-y-1">
                   <Label className="sm:hidden">Limit / Cycle</Label>
                   <div className="flex items-center gap-1">

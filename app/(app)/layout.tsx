@@ -6,7 +6,6 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { UserDataProvider } from "@/lib/user-data-provider";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  // Protect all routes under (app) directory
   useAuthGuard();
 
   return (

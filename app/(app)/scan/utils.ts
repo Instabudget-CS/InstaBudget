@@ -1,6 +1,7 @@
 import type { TransactionFormData } from "./types";
 import type { EdgeFunctionResponse } from "./types";
 import { mockExtractedData } from "./constants";
+import { getTodayLocal, getTodayUTC } from "@/lib/date-utils";
 
 export const transformTransactionToFormData = (
   transaction: EdgeFunctionResponse["transaction"]
@@ -8,13 +9,25 @@ export const transformTransactionToFormData = (
   if (!transaction) return null;
 
   const items = JSON.parse(transaction.transaction_items || "[]");
+
+  // this prevents timezone issues where UTC today might be tomorrow locally
+  let txnDate = transaction.transaction_date || getTodayLocal();
+  if (transaction.transaction_date) {
+    const todayUTC = getTodayUTC();
+
+    if (transaction.transaction_date === todayUTC) {
+      txnDate = getTodayLocal();
+    } else {
+      txnDate = transaction.transaction_date;
+    }
+  }
+
   return {
     merchant: transaction.merchant || "",
     amount: transaction.total_amount?.toString() || "0",
     category: (transaction.category ||
       "other") as typeof mockExtractedData.category,
-    txnDate:
-      transaction.transaction_date || new Date().toISOString().split("T")[0],
+    txnDate,
     notes: transaction.notes || "",
     items: items.map((item: { item: string; price: number }) => ({
       name: item.item || "",
