@@ -39,7 +39,6 @@ export function useTransactionEdit({
         throw error;
       }
 
-      // Update local state
       updateTransaction(transaction.id, transactionData);
 
       toast({
@@ -47,7 +46,6 @@ export function useTransactionEdit({
         description: "Transaction updated successfully",
       });
 
-      // Refresh to get latest data
       await refreshTransactions();
       return true;
     } catch (error) {

@@ -51,10 +51,9 @@ export function VoiceTabContent({
   onViewTransactions,
   onRecordAnother,
 }: VoiceTabContentProps) {
-  // Auto-send recording when stopped
   const handleStopAndSend = () => {
     onStopRecording();
-    // Small delay to ensure recording is fully stopped and chunks are collected
+    // small delay to ensure recording is fully stopped and chunks are collected
     setTimeout(() => {
       onSendRecording();
     }, 200);

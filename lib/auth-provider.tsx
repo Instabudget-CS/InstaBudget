@@ -49,12 +49,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     if (!profileData) return profileData;
 
-    // Only check if budget_auto_renew is enabled
     if (!profileData.budget_auto_renew) {
       return profileData;
     }
 
-    // Check if cycle_endDate exists and has passed
     if (!profileData.cycle_endDate) {
       return profileData;
     }
@@ -64,24 +62,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const endDate = new Date(profileData.cycle_endDate);
     endDate.setHours(0, 0, 0, 0);
 
-    // If end date hasn't passed yet, no need to renew
     if (endDate >= today) {
       return profileData;
     }
 
-    // Calculate new cycle dates
-    // New start date = old end date + 1 day
     const newStartDate = new Date(endDate);
     newStartDate.setDate(newStartDate.getDate() + 1);
 
-    // New end date = new start date + 30 days
     const newEndDate = new Date(newStartDate);
     newEndDate.setDate(newEndDate.getDate() + 30);
 
     const newStartDateISO = newStartDate.toISOString().split("T")[0];
     const newEndDateISO = newEndDate.toISOString().split("T")[0];
 
-    // Update profile with new cycle dates
     try {
       const { error } = await supabase
         .from("profiles")
@@ -97,7 +90,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return profileData;
       }
 
-      // Return updated profile data
       return {
         ...profileData,
         cycle_startDate: newStartDateISO,
@@ -123,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
       } else {
         const profileData = data ?? null;
-        // Check and auto-renew cycle if needed
+
         const updatedProfile = await checkAndRenewCycle(profileData, userId);
         setProfile(updatedProfile);
       }
@@ -210,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setProfile(null);
-        // Redirect to login page when user signs out or session expires
+
         if (event === "SIGNED_OUT" && typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           if (currentPath !== "/auth" && !currentPath.startsWith("/auth/")) {

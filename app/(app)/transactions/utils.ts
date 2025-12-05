@@ -1,24 +1,18 @@
 import type { Transaction } from "@/lib/user-data-provider";
 import type { Category, TransactionFormData } from "@/app/(app)/scan/types";
 
-/**
- * Format date to readable string
- */
+import { parseLocalDate } from "@/lib/date-utils";
+
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
+  const date = parseLocalDate(dateString);
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
-/**
- * Format currency amount
- * @param amount - The amount to format
- * @param currency - Currency code (ISO 4217) or symbol. If symbol is provided, it will be converted to code.
- */
 export function formatCurrency(amount: number, currency: string): string {
-  // Map common currency symbols to ISO codes
   const currencyMap: Record<string, string> = {
     $: "USD",
     "€": "EUR",
@@ -44,10 +38,8 @@ export function formatCurrency(amount: number, currency: string): string {
     "₸": "KZT",
   };
 
-  // Normalize currency code
   const normalizedCurrency = currencyMap[currency] || currency.toUpperCase();
 
-  // Validate and default to USD if invalid
   const validCurrency =
     normalizedCurrency.length === 3 && /^[A-Z]{3}$/.test(normalizedCurrency)
       ? normalizedCurrency
@@ -59,9 +51,6 @@ export function formatCurrency(amount: number, currency: string): string {
   }).format(amount);
 }
 
-/**
- * Convert transaction to form data format
- */
 export function convertTransactionToFormData(
   transaction: Transaction
 ): TransactionFormData {

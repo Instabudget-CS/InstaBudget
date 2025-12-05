@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { TransactionItemsList } from "./transaction-items-list";
 import type { Category, TransactionFormData } from "../types";
+import { getTodayLocal } from "@/lib/date-utils";
 
 const CATEGORIES: Category[] = [
   "groceries",
@@ -51,7 +52,7 @@ export function TransactionForm({
     initialData?.category || "other"
   );
   const [txnDate, setTxnDate] = useState(
-    initialData?.txnDate || new Date().toISOString().split("T")[0]
+    initialData?.txnDate || getTodayLocal()
   );
   const [notes, setNotes] = useState(initialData?.notes || "");
   const [items, setItems] = useState(initialData?.items || []);

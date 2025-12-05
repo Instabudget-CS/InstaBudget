@@ -16,15 +16,13 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}) {
   const { requireAuth = true, requireProfile = true, redirectTo } = options;
 
   useEffect(() => {
-    if (loading) return; // Wait for auth state to load
+    if (loading) return;
 
-    // If auth is required but user is not logged in
     if (requireAuth && !user) {
       router.push(redirectTo || "/auth");
       return;
     }
 
-    // If profile is required but user doesn't have one
     if (requireProfile && user && !profile) {
       router.push(redirectTo || "/auth/setup");
       return;

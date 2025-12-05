@@ -16,6 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  getTodayLocal,
+  parseLocalDate,
+  formatLocalDate,
+} from "@/lib/date-utils";
 
 export type BudgetCycle = "weekly" | "biweekly" | "monthly";
 
@@ -42,15 +47,13 @@ export function BudgetCycleCard({ config, onChange }: BudgetCycleCardProps) {
     budget_auto_renew,
   } = config;
 
-  // Calculate minimum date (today)
-  const todayISO = new Date().toISOString().split("T")[0];
+  const todayISO = getTodayLocal();
 
   const handleStartDateChange = (newStartDate: string) => {
-    // Calculate end date as start date + 30 days
-    const startDate = new Date(newStartDate);
+    const startDate = parseLocalDate(newStartDate);
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 30);
-    const endDateISO = endDate.toISOString().split("T")[0];
+    const endDateISO = formatLocalDate(endDate);
 
     onChange({
       cycle_startDate: newStartDate,
@@ -69,7 +72,6 @@ export function BudgetCycleCard({ config, onChange }: BudgetCycleCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* cycle duration with start and end dates*/}
         <div className="grid w-full gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="cycle_duration">Budget Cycle</Label>
@@ -135,7 +137,6 @@ export function BudgetCycleCard({ config, onChange }: BudgetCycleCardProps) {
           </div>
         </div>
 
-        {/* Users can choose to auto renew budget */}
         <div className="space-y-2">
           <Label htmlFor="budget_auto_renew">Auto-Renew Budget</Label>
           <Select

@@ -54,21 +54,11 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     transactions,
   });
 
-  // const {
-  //   insights: aiInsights,
-  //   loading: insightsLoading,
-  //   refreshInsights: refreshAIInsights,
-  // } = useAIInsights({ userId: user?.id ?? null });
-
   const {
     insights: aiInsights,
     loading: insightsLoading,
     refreshInsights: refreshAIInsights,
-  } = {
-    insights: {},
-    loading: true,
-    refreshInsights: () => console.log("refreshInsights"),
-  };
+  } = useAIInsights({ userId: user?.id ?? null });
 
   useEffect(() => {
     const loadData = async () => {

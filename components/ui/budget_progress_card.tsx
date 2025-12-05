@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import { PieChart } from 'lucide-react';
+import { PieChart } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
+import { parseLocalDate } from "@/lib/date-utils";
 
 type CategoryProgress = {
   id: string;
@@ -28,7 +29,6 @@ interface BudgetProgressCardProps {
   currency: string;
 }
 
-// Receives necessary data as props
 export function BudgetProgressCard({
   cycleLabel,
   cycleRange,
@@ -54,11 +54,12 @@ export function BudgetProgressCard({
         <CardDescription>
           {cycleRange && (
             <>
-              {' '}
-              Tracking from {new Date(cycleRange.start).toLocaleDateString()}
+              {" "}
+              Tracking from{" "}
+              {parseLocalDate(cycleRange.start).toLocaleDateString()}
               {cycleRange.end
-                ? ` to ${new Date(cycleRange.end).toLocaleDateString()}`
-                : ''}
+                ? ` to ${parseLocalDate(cycleRange.end).toLocaleDateString()}`
+                : ""}
               .
             </>
           )}
@@ -66,7 +67,6 @@ export function BudgetProgressCard({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Total Combined Progress Bar Visualization */}
         <div className="space-y-3 rounded-xl border border-green-100 bg-green-50/60 p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
@@ -74,7 +74,7 @@ export function BudgetProgressCard({
                 Total for {cycleLabel}
               </p>
               <p className="text-lg font-semibold text-green-900">
-                {currency} {totalSpent.toFixed(2)}{' '}
+                {currency} {totalSpent.toFixed(2)}{" "}
                 <span className="text-xs font-normal text-green-700">
                   / {currency} {totalLimit.toFixed(2)}
                 </span>
@@ -99,7 +99,6 @@ export function BudgetProgressCard({
           </div>
         </div>
 
-        {/* Individual Category Progress Bar Visualization */}
         <div className="space-y-3">
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Category breakdown
@@ -114,7 +113,7 @@ export function BudgetProgressCard({
           <div className="space-y-2">
             {categories.map((cat) => {
               const safeCategoryLimitt = cat.limit > 0 ? cat.limit : 1;
-              // Note the 140 is to cap bar from overflowing
+
               const percentage = Math.min(
                 140,
                 (cat.spent / safeCategoryLimitt) * 100
@@ -129,10 +128,10 @@ export function BudgetProgressCard({
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
-                        {cat.name || 'Untitled category'}
+                        {cat.name || "Untitled category"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {currency} {cat.spent.toFixed(2)} / {currency}{' '}
+                        {currency} {cat.spent.toFixed(2)} / {currency}{" "}
                         {cat.limit.toFixed(2)}
                       </p>
                     </div>
@@ -163,9 +162,8 @@ export function BudgetProgressCard({
   );
 }
 
-// Maps percentage bar <70 to green, <100 to yellow, >=100 to red
 function getProgressBarColor(percentage: number): string {
-  if (percentage < 70) return 'bg-green-400';
-  if (percentage < 100) return 'bg-yellow-400';
-  return 'bg-red-400';
+  if (percentage < 70) return "bg-green-400";
+  if (percentage < 100) return "bg-yellow-400";
+  return "bg-red-400";
 }

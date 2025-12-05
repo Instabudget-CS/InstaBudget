@@ -1,16 +1,14 @@
-/**
- * Calculate end date from start date (start date + 30 days)
- */
+import { parseLocalDate, formatLocalDate } from "@/lib/date-utils";
+
+// uses local timezone to avoid UTC conversion issues
 export function calculateEndDate(startDate: string): string {
-  const start = new Date(startDate);
+  const start = parseLocalDate(startDate);
   const end = new Date(start);
   end.setDate(end.getDate() + 30);
-  return end.toISOString().split("T")[0];
+  return formatLocalDate(end);
 }
 
-/**
- * Get today's date in ISO format (YYYY-MM-DD)
- */
+// get today's date in ISO format (YYYY-MM-DD) in local timezone
 export function getTodayISO(): string {
-  return new Date().toISOString().split("T")[0];
+  return formatLocalDate(new Date());
 }

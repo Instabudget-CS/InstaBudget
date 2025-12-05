@@ -1,4 +1,5 @@
 import type { Category, TransactionItem } from "./types";
+import { getTodayLocal } from "@/lib/date-utils";
 
 export const EDGE_FUNCTION_URL =
   "https://ijmcipjnduzdxswhkezs.supabase.co/functions/v1/LLM_receipt_json";
@@ -10,7 +11,7 @@ export const mockExtractedData = {
   merchant: "Whole Foods Market",
   amount: "47.82",
   category: "groceries" as Category,
-  txnDate: new Date().toISOString().split("T")[0],
+  txnDate: getTodayLocal(),
   notes: "",
   items: [
     { name: "Organic Bananas", price: 4.99 },
