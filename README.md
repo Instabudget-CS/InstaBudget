@@ -51,8 +51,8 @@ View an overview of:
 - **Frontend:** Next.js 16, React 19, TypeScript
 - **Styling:** Tailwind CSS
 - **Backend:** Supabase (database & authentication)
-- **AI/ML:** Google Gemini API for receipt scanning and voice processing
-- **UI Components:** Radix UI, shadcn/ui
+- **AI/ML:** Google Gemini API for receipt scanning and voice processing, OpenAI whisper to extract text from voice recording.
+- **UI Components:** shadcn/ui
 
 ## Project Structure
 
